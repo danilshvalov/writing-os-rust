@@ -1,0 +1,6 @@
+[book]
+authors = ["danilshvalov"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Пишем операционную систему на Rust"
