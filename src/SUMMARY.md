@@ -1,3 +1,4 @@
 # Summary
 
-- [Chapter 1](./chapter_1.md)
+- [Автономный исполняемый файл](./01-freestanding-rust-binary/introduction.md)
+  - [Отключение стандартной библиотеки](./01-freestanding-rust-binary/disabling-std.md)

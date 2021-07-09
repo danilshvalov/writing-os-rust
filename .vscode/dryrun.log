@@ -1,0 +1,12 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory `/Users/danilshvalov/Documents/dev/projects/mdbook/writing-os-rust'
+echo "====> deploying to github"
+mdbook build
+rm -rf ./tmp/book/*
+cp -rp ./book/* ./tmp/book/
+cd ./tmp/book && \
+		git add -A && \
+		git commit -m "deployed on Fri Jul  9 23:58:09 +10 2021 by danilshvalov" && \
+		git push origin gh-pages
+make: Leaving directory `/Users/danilshvalov/Documents/dev/projects/mdbook/writing-os-rust'
+ 
