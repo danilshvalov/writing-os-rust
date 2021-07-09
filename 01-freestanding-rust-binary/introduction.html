@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chapter 1 - Пишем операционную систему на Rust</title>
+        <title>Автономный исполняемый файл - Пишем операционную систему на Rust</title>
         <!-- Custom HTML head -->
         
 
@@ -12,26 +12,26 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
-        <link rel="icon" href="favicon.svg">
-        <link rel="shortcut icon" href="favicon.png">
-        <link rel="stylesheet" href="css/variables.css">
-        <link rel="stylesheet" href="css/general.css">
-        <link rel="stylesheet" href="css/chrome.css">
-        <link rel="stylesheet" href="css/print.css" media="print">
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
         <!-- Fonts -->
-        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
-        <link rel="stylesheet" href="fonts/fonts.css">
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="highlight.css">
-        <link rel="stylesheet" href="tomorrow-night.css">
-        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
     </head>
     <body>
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
-            var path_to_root = "";
+            var path_to_root = "../";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
@@ -77,7 +77,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="chapter_1.html" class="active"><strong aria-hidden="true">1.</strong> Chapter 1</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/introduction.html" class="active"><strong aria-hidden="true">1.</strong> Автономный исполняемый файл</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/disabling-std.html"><strong aria-hidden="true">1.1.</strong> Отключение стандартной библиотеки</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -110,7 +110,7 @@
                     <h1 class="menu-title">Пишем операционную систему на Rust</h1>
 
                     <div class="right-buttons">
-                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                     </div>
@@ -152,53 +152,10 @@ chapter = &quot;Bare Bones&quot;
 <h2 id="Введение"><a class="header" href="#Введение">Введение</a></h2>
 <p>Чтобы написать ядро операционной системы, нам нужен код, который не зависит от каких-либо функций операционной системы. Это означает, что мы не можем использовать потоки (threads), файлы (files), память в куче (heap memory), сеть (the network), случайные числа (random numbers), стандартный вывод (standard output) или любые другие функции, требующие абстракции со стороны операционной системы (OS abstractions) или определенного оборудования. В этом есть смысл, поскольку мы пытаемся написать собственную операционную систему и собственные драйверы.</p>
 <p>Это означает, что мы не можем использовать большую часть <a href="https://doc.rust-lang.org/std/">стандартной библиотеки Rust</a>, но есть много возможностей (features) из Rust, которые мы <em>можем</em> использовать. Например, мы можем использовать <a href="https://doc.rust-lang.org/book/ch13-02-iterators.html">итераторы</a>, <a href="https://doc.rust-lang.org/book/ch13-01-closures.html">замыкания</a>, <a href="https://doc.rust-lang.org/book/ch06-00-enums.html">pattern matching</a>, <a href="https://doc.rust-lang.org/core/option/">option</a> и <a href="https://doc.rust-lang.org/core/result/">result</a>, <a href="https://doc.rust-lang.org/core/macro.write.html">форматирование строк</a> и, конечно же, <a href="https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html">систему владения</a>. Эти возможности позволяют написать ядро очень выразительным и высокоуровневым способом, не беспокоясь о <a href="https://www.nayuki.io/page/undefined-behavior-in-c-and-cplusplus-programs">неопределенном поведении</a> (undefined behavior) или о <a href="https://tonyarcieri.com/it-s-time-for-a-memory-safety-intervention">безопасности памяти</a> (memory safety).</p>
-<p>Для разработки ядра ОС на Rust нам необходимо создать исполняемый файл, который можно запускать без операционной системы. Такой файл обычно называют “автономный” (freestanding) или “голый” (bare-metal). </p>
+<p>Для разработки ядра ОС на Rust нам необходимо создать исполняемый файл, который можно запускать без операционной системы. Такой файл обычно называют “автономный” (freestanding) или “голый” (bare-metal).</p>
 <p>В этой статье описываются шаги, необходимые для создания автономного бинарника на Rust, и объясняется, почему эти шаги необходимы. Если вас интересует краткая сводка, вы можете <strong><a href="#summary">перейти к резюме</a></strong></p>
-<h2 id="Отключение-стандартной-библиотеки"><a class="header" href="#Отключение-стандартной-библиотеки">Отключение стандартной библиотеки</a></h2>
-<p>By default, all Rust crates link the [standard library], which depends on the operating system for features such as threads, files, or networking. It also depends on the C standard library <code>libc</code>, which closely interacts with OS services. Since our plan is to write an operating system, we can not use any OS-dependent libraries. So we have to disable the automatic inclusion of the standard library through the <a href="https://doc.rust-lang.org/1.30.0/book/first-edition/using-rust-without-the-standard-library.html"><code>no_std</code> attribute</a>.</p>
-<p>По умолчанию все крейты в Rust подключают <a href="https://doc.rust-lang.org/std/">стандартную библиотеку</a>, которая зависит от операционной системы, для таких функций, как потоки (threads), файлы (files) или сеть (networking). Это также включает в себя зависимость от стандартной библиотеки Си (C standard library <code>libc</code>), которая взаимодействует со службами ОС. Поскольку мы планируем написать ОС, мы не можем использовать какие-либо библиотеки, зависящие от ОС. </p>
-<p>We start by creating a new cargo application project. The easiest way to do this is through the command line:</p>
-<pre><code>cargo new blog_os --bin --edition 2018
-</code></pre>
-<p>I named the project <code>blog_os</code>, but of course you can choose your own name. The <code>--bin</code> flag specifies that we want to create an executable binary (in contrast to a library) and the <code>--edition 2018</code> flag specifies that we want to use the <a href="https://doc.rust-lang.org/nightly/edition-guide/rust-2018/index.html">2018 edition</a> of Rust for our crate. When we run the command, cargo creates the following directory structure for us:</p>
-<pre><code>blog_os
-├── Cargo.toml
-└── src
-    └── main.rs
-</code></pre>
-<p>The <code>Cargo.toml</code> contains the crate configuration, for example the crate name, the author, the <a href="https://semver.org/">semantic version</a> number, and dependencies. The <code>src/main.rs</code> file contains the root module of our crate and our <code>main</code> function. You can compile your crate through <code>cargo build</code> and then run the compiled <code>blog_os</code> binary in the <code>target/debug</code> subfolder.</p>
-<h3 id="the-no_std-attribute"><a class="header" href="#the-no_std-attribute">The <code>no_std</code> Attribute</a></h3>
-<p>Right now our crate implicitly links the standard library. Let's try to disable this by adding the <a href="https://doc.rust-lang.org/1.30.0/book/first-edition/using-rust-without-the-standard-library.html"><code>no_std</code> attribute</a>:</p>
-<pre><pre class="playground"><code class="language-rust">// main.rs
-
-#![no_std]
-
-fn main() {
-    println!(&quot;Hello, world!&quot;);
-}
-</code></pre></pre>
-<p>When we try to build it now (by running <code>cargo build</code>), the following error occurs:</p>
-<pre><code>error: cannot find macro `println!` in this scope
- --&gt; src/main.rs:4:5
-  |
-4 |     println!(&quot;Hello, world!&quot;);
-  |     ^^^^^^^
-</code></pre>
-<p>The reason for this error is that the <a href="https://doc.rust-lang.org/std/macro.println.html"><code>println</code> macro</a> is part of the standard library, which we no longer include. So we can no longer print things. This makes sense, since <code>println</code> writes to <a href="https://en.wikipedia.org/wiki/Standard_streams#Standard_output_.28stdout.29">standard output</a>, which is a special file descriptor provided by the operating system.</p>
-<p>So let's remove the printing and try again with an empty main function:</p>
-<pre><pre class="playground"><code class="language-rust">// main.rs
-
-#![no_std]
-
-fn main() {}
-</code></pre></pre>
-<pre><code>&gt; cargo build
-error: `#[panic_handler]` function required, but not found
-error: language item required, but not found: `eh_personality`
-</code></pre>
-<p>Now the compiler is missing a <code>#[panic_handler]</code> function and a <em>language item</em>.</p>
-<h2 id="panic-implementation"><a class="header" href="#panic-implementation">Panic Implementation</a></h2>
-<p>The <code>panic_handler</code> attribute defines the function that the compiler should invoke when a <a href="https://doc.rust-lang.org/stable/book/ch09-01-unrecoverable-errors-with-panic.html">panic</a> occurs. The standard library provides its own panic handler function, but in a <code>no_std</code> environment we need to define it ourselves:</p>
+<h2 id="Реализация-panic"><a class="header" href="#Реализация-panic">Реализация Panic</a></h2>
+<p>Атрибут <code>panic_handler</code> определяет функцию, которую компилятор должен вызвать при возникновении <a href="https://doc.rust-lang.org/stable/book/ch09-01-unrecoverable-errors-with-panic.html">паники</a> (panic) входе работы программы. Стандартная библиотека предоставляет собственную функцию обработки паники, но так как мы используем <code>no_std</code>, нам нужно определить ее самостоятельно:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -206,38 +163,39 @@ error: language item required, but not found: `eh_personality`
 
 use core::panic::PanicInfo;
 
-/// This function is called on panic.
+/// Эта функция вызывается при панике
 #[panic_handler]
 fn panic(_info: &amp;PanicInfo) -&gt; ! {
     loop {}
 }
 <span class="boring">}
 </span></code></pre></pre>
-<p>The <a href="https://doc.rust-lang.org/nightly/core/panic/struct.PanicInfo.html"><code>PanicInfo</code> parameter</a> contains the file and line where the panic happened and the optional panic message. The function should never return, so it is marked as a <a href="https://doc.rust-lang.org/1.30.0/book/first-edition/functions.html#diverging-functions">diverging function</a> by returning the <a href="https://doc.rust-lang.org/nightly/std/primitive.never.html">“never” type</a> <code>!</code>. There is not much we can do in this function for now, so we just loop indefinitely.</p>
-<h2 id="the-eh_personality-language-item"><a class="header" href="#the-eh_personality-language-item">The <code>eh_personality</code> Language Item</a></h2>
-<p>Language items are special functions and types that are required internally by the compiler. For example, the <a href="https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html"><code>Copy</code></a> trait is a language item that tells the compiler which types have <a href="https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html"><em>copy semantics</em></a>. When we look at the <a href="https://github.com/rust-lang/rust/blob/485397e49a02a3b7ff77c17e4a3f16c653925cb3/src/libcore/marker.rs#L296-L299">implementation</a>, we see it has the special <code>#[lang = &quot;copy&quot;]</code> attribute that defines it as a language item.</p>
-<p>While providing custom implementations of language items is possible, it should only be done as a last resort. The reason is that language items are highly unstable implementation details and not even type checked (so the compiler doesn't even check if a function has the right argument types). Fortunately, there is a more stable way to fix the above language item error.</p>
-<p>The <a href="https://github.com/rust-lang/rust/blob/edb368491551a77d77a48446d4ee88b35490c565/src/libpanic_unwind/gcc.rs#L11-L45"><code>eh_personality</code> language item</a> marks a function that is used for implementing <a href="https://www.bogotobogo.com/cplusplus/stackunwinding.php">stack unwinding</a>. By default, Rust uses unwinding to run the destructors of all live stack variables in case of a <a href="https://doc.rust-lang.org/stable/book/ch09-01-unrecoverable-errors-with-panic.html">panic</a>. This ensures that all used memory is freed and allows the parent thread to catch the panic and continue execution. Unwinding, however, is a complicated process and requires some OS specific libraries (e.g. <a href="https://www.nongnu.org/libunwind/">libunwind</a> on Linux or <a href="https://docs.microsoft.com/de-de/windows/win32/debug/structured-exception-handling">structured exception handling</a> on Windows), so we don't want to use it for our operating system.</p>
-<h3 id="disabling-unwinding"><a class="header" href="#disabling-unwinding">Disabling Unwinding</a></h3>
-<p>There are other use cases as well for which unwinding is undesirable, so Rust provides an option to <a href="https://github.com/rust-lang/rust/pull/32900">abort on panic</a> instead. This disables the generation of unwinding symbol information and thus considerably reduces binary size. There are multiple places where we can disable unwinding. The easiest way is to add the following lines to our <code>Cargo.toml</code>:</p>
+<p><a href="https://doc.rust-lang.org/nightly/core/panic/struct.PanicInfo.html">Параметр <code>PanicInfo</code></a> содержит в себе информацию о файле и строку, где произошла паника, а также может содержать сообщение с ошибкой. Функция должна никогда не возвращать результат (never return), поэтому она помечена как <a href="https://doc.rust-lang.org/1.30.0/book/first-edition/functions.html#diverging-functions">расходящаяся функция</a> (diverging function) с помощью возврата <a href="https://doc.rust-lang.org/nightly/std/primitive.never.html">“пустого” типа</a> <code>!</code>. Сейчас мы мало что можем сделать с этой функцией, поэтому просто создадим бесконечный цикл.</p>
+<h2 id="Элемент-языка-eh_personality"><a class="header" href="#Элемент-языка-eh_personality">Элемент языка <code>eh_personality</code></a></h2>
+<p>Элементы языка - это специальные функции и типы, которые требует компилятор. Например, трейт <a href="https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html"><code>Copy</code></a> - это элемент языка, который сообщает компилятору какие типы имею <a href="https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html"><em>семантику копирования</em></a>. Если посмотреть на <a href="https://github.com/rust-lang/rust/blob/485397e49a02a3b7ff77c17e4a3f16c653925cb3/src/libcore/marker.rs#L296-L299">реализацию</a>, мы увидим, что трейт помечен специальным атрибутом <code>#[lang = &quot;copy&quot;]</code>, который определяет его как языковой элемент.</p>
+<p>Хотя создание пользовательских реализаций языковых элементов возможно, делать это следует только в крайнем случае. Причина в том, что языковые элементы представляют собой очень нестабильные детали реализации, типы которых не проверяются компилятором статически. К счастью, есть более безопасный способ исправить указанную выше ошибку.</p>
+<p><a href="https://github.com/rust-lang/rust/blob/edb368491551a77d77a48446d4ee88b35490c565/src/libpanic_unwind/gcc.rs#L11-L45">Элемент языка <code>eh_personality</code></a> помечает функцию, которая используется для реализации <a href="https://www.bogotobogo.com/cplusplus/stackunwinding.php">раскрутки стека</a>. По умолчанию Rust использует раскрутку стека для запуска деструкторов всех переменных, живущих на стеке, в случае паники. Это гарантирует, что вся используемая память будет освобождена, и позволяет родительскому потоку перехватить панику и продолжить выполнение. Однако раскрутка стека - это сложный процесс, требующий наличие библиотек, специфичных для ОС (например <a href="https://www.nongnu.org/libunwind/">libunwind</a> на Linux или <a href="https://docs.microsoft.com/de-de/windows/win32/debug/structured-exception-handling">structured exception handling</a> на Windows), так что мы не будем использовать раскрутку в нашей операционной системе.</p>
+<h3 id="Отключение-раскрутки-стека"><a class="header" href="#Отключение-раскрутки-стека">Отключение раскрутки стека</a></h3>
+<p>Бывают случаи, когда раскрутка нежелательна, поэтому Rust предоставляет возможность <a href="https://github.com/rust-lang/rust/pull/32900">прекратить работу исполняемого файла</a> при панике. Это отключает генерацию символов, необходимых для раскрутки стека, и, таким образом, значительно уменьшает размер бинарного файла. Есть несколько способов отключения раскрутки. Самый простой - добавить несколько строк в наш <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[profile.dev]
 panic = &quot;abort&quot;
 
 [profile.release]
 panic = &quot;abort&quot;
 </code></pre>
-<p>This sets the panic strategy to <code>abort</code> for both the <code>dev</code> profile (used for <code>cargo build</code>) and the <code>release</code> profile (used for <code>cargo build --release</code>). Now the <code>eh_personality</code> language item should no longer be required.</p>
-<p>Now we fixed both of the above errors. However, if we try to compile it now, another error occurs:</p>
+<p>Мы указываем прекратить работу исполняемого файла при панике для <code>dev</code> профиля (используется при <code>cargo build</code>) и для <code>release</code> профиля (используется при <code>cargo build --release</code>). Теперь языковой элемент <code>eh_personality</code> больше не требуется.</p>
+<p>Теперь мы исправили обе указанные выше ошибки. Однако, если мы попытаемся скомпилировать программу, возникнет другая ошибка:</p>
 <pre><code>&gt; cargo build
 error: requires `start` lang_item
 </code></pre>
-<p>Our program is missing the <code>start</code> language item, which defines the entry point.</p>
-<h2 id="the-start-attribute"><a class="header" href="#the-start-attribute">The <code>start</code> attribute</a></h2>
-<p>One might think that the <code>main</code> function is the first function called when you run a program. However, most languages have a <a href="https://en.wikipedia.org/wiki/Runtime_system">runtime system</a>, which is responsible for things such as garbage collection (e.g. in Java) or software threads (e.g. goroutines in Go). This runtime needs to be called before <code>main</code>, since it needs to initialize itself.</p>
-<p>In a typical Rust binary that links the standard library, execution starts in a C runtime library called <code>crt0</code> (“C runtime zero”), which sets up the environment for a C application. This includes creating a stack and placing the arguments in the right registers. The C runtime then invokes the <a href="https://github.com/rust-lang/rust/blob/bb4d1491466d8239a7a5fd68bd605e3276e97afb/src/libstd/rt.rs#L32-L73">entry point of the Rust runtime</a>, which is marked by the <code>start</code> language item. Rust only has a very minimal runtime, which takes care of some small things such as setting up stack overflow guards or printing a backtrace on panic. The runtime then finally calls the <code>main</code> function.</p>
-<p>Our freestanding executable does not have access to the Rust runtime and <code>crt0</code>, so we need to define our own entry point. Implementing the <code>start</code> language item wouldn't help, since it would still require <code>crt0</code>. Instead, we need to overwrite the <code>crt0</code> entry point directly.</p>
-<h3 id="overwriting-the-entry-point"><a class="header" href="#overwriting-the-entry-point">Overwriting the Entry Point</a></h3>
-<p>To tell the Rust compiler that we don't want to use the normal entry point chain, we add the <code>#![no_main]</code> attribute.</p>
+<p>Компилятор не может найти языковой элемент <code>start</code>, который определяет точку входа в программу.</p>
+<h2 id="Аттрибут-start"><a class="header" href="#Аттрибут-start">Аттрибут <code>start</code></a></h2>
+<p>One might think that the <code>main</code> function is the first function called when you run a program. However, most languages have a [runtime system], which is responsible for things such as garbage collection (e.g. in Java) or software threads (e.g. goroutines in Go). This runtime needs to be called before <code>main</code>, since it needs to initialize itself.</p>
+<p>Можно подумать, что функция <code>main</code> - это первая функция, которая будет вызвана при запуске вашей программы. Однако у большинства языков программирования есть <a href="https://en.wikipedia.org/wiki/Runtime_system">среда выполнения</a> (runtime system), которая отвечает за такие вещи, как сборка мусора (например в Java) или программные потоки (например goroutines в Go). Среду выполнения нужно вызвать перед <code>main</code>, поскольку она должна инициализировать себя.</p>
+<p>В обычном бинарном файле Rust, который подключает стандартную библиотеку, выполнение начинается в runtime-библиотеке языка Си под названием <code>crt0</code> (“C runtime zero”), которая устанавливает среду для Си-приложения. Это включает в себя создание стека и размещение аргументов в правильных регистрах. Затем среда выполнения Си вызывает <a href="https://github.com/rust-lang/rust/blob/bb4d1491466d8239a7a5fd68bd605e3276e97afb/src/libstd/rt.rs#L32-L73">точку входа среды выполнения Rust</a>, которая помечена языковым элементом <code>start</code>. Rust имеет очень маленькую среду выполнения, которая заботится о некоторых мелочах, таких как настройка защиты от переполнения стека или печать backtrace при панике. Затем среда выполнения вызывает функцию <code>main</code>.</p>
+<p>Наш автономный исполняемый файл не имеет доступа к среде выполнения Rust и к <code>crt0</code>, поэтому нам нужно определить нашу собственную точку входа. Реализация языкового элемента <code>start</code> не решит нашу проблему, так как для работы потребуется <code>crt0</code>. Вместо этого нам нужно напрямую перезаписать точку входа <code>crt0</code>.</p>
+<h3 id="Перезаписывание-точки-входа"><a class="header" href="#Перезаписывание-точки-входа">Перезаписывание точки входа</a></h3>
+<p>Чтобы сообщить компилятору Rust, что мы не хотим использовать обычную цепочку точек входа, мы должны использовать <code>#![no_main]</code> атрибут.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span>#![no_std]
@@ -246,14 +204,14 @@ error: requires `start` lang_item
 <span class="boring">fn main() {
 </span>use core::panic::PanicInfo;
 
-/// This function is called on panic.
+/// Эта функция вызывается при панике
 #[panic_handler]
 fn panic(_info: &amp;PanicInfo) -&gt; ! {
     loop {}
 }
 <span class="boring">}
 </span></code></pre></pre>
-<p>You might notice that we removed the <code>main</code> function. The reason is that a <code>main</code> doesn't make sense without an underlying runtime that calls it. Instead, we are now overwriting the operating system entry point with our own <code>_start</code> function:</p>
+<p>Вы можете заметить, что мы удалили функцию <code>main</code>. Дело в том, что функция <code>main</code> не имеет смысла без среды выполнения, которая её вызывает. Вместо этого теперь мы перезаписываем точку входа в операционную систему с помощью функции <code>_start</code>:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -263,16 +221,16 @@ pub extern &quot;C&quot; fn _start() -&gt; ! {
 }
 <span class="boring">}
 </span></code></pre></pre>
-<p>By using the <code>#[no_mangle]</code> attribute we disable the <a href="https://en.wikipedia.org/wiki/Name_mangling">name mangling</a> to ensure that the Rust compiler really outputs a function with the name <code>_start</code>. Without the attribute, the compiler would generate some cryptic <code>_ZN3blog_os4_start7hb173fedf945531caE</code> symbol to give every function an unique name. The attribute is required because we need to tell the name of the entry point function to the linker in the next step.</p>
-<p>We also have to mark the function as <code>extern &quot;C&quot;</code> to tell the compiler that it should use the <a href="https://en.wikipedia.org/wiki/Calling_convention">C calling convention</a> for this function (instead of the unspecified Rust calling convention). The reason for naming the function <code>_start</code> is that this is the default entry point name for most systems.</p>
-<p>The <code>!</code> return type means that the function is diverging, i.e. not allowed to ever return. This is required because the entry point is not called by any function, but invoked directly by the operating system or bootloader. So instead of returning, the entry point should e.g. invoke the <a href="https://en.wikipedia.org/wiki/Exit_(system_call)"><code>exit</code> system call</a> of the operating system. In our case, shutting down the machine could be a reasonable action, since there's nothing left to do if a freestanding binary returns. For now, we fulfill the requirement by looping endlessly.</p>
-<p>When we run <code>cargo build</code> now, we get an ugly <em>linker</em> error.</p>
-<h2 id="linker-errors"><a class="header" href="#linker-errors">Linker Errors</a></h2>
-<p>The linker is a program that combines the generated code into an executable. Since the executable format differs between Linux, Windows, and macOS, each system has its own linker that throws a different error. The fundamental cause of the errors is the same: the default configuration of the linker assumes that our program depends on the C runtime, which it does not.</p>
-<p>To solve the errors, we need to tell the linker that it should not include the C runtime. We can do this either by passing a certain set of arguments to the linker or by building for a bare metal target.</p>
-<h3 id="building-for-a-bare-metal-target"><a class="header" href="#building-for-a-bare-metal-target">Building for a Bare Metal Target</a></h3>
-<p>By default Rust tries to build an executable that is able to run in your current system environment. For example, if you're using Windows on <code>x86_64</code>, Rust tries to build a <code>.exe</code> Windows executable that uses <code>x86_64</code> instructions. This environment is called your &quot;host&quot; system.</p>
-<p>To describe different environments, Rust uses a string called <a href="https://clang.llvm.org/docs/CrossCompilation.html#target-triple"><em>target triple</em></a>. You can see the target triple for your host system by running <code>rustc --version --verbose</code>:</p>
+<p>Используя атрибут <code>#[no_mangle]</code>, мы отключаем <a href="https://en.wikipedia.org/wiki/Name_mangling">искажение имен</a> (name mangling), чтобы гарантировать, что компилятор Rust создаст функцию с именем <code>_start</code>. Без этого атрибута компилятор сгенерирует какой-нибудь загадочный символ, наподобие <code>_ZN3blog_os4_start7hb173fedf945531caE</code>, чтобы дать каждой функции уникальное имя. Атрибут является обязательным, поскольку на следующем шаге нам нужно сообщить имя функции точки входа компоновщику.</p>
+<p>Мы также должны пометить функцию как <code>extern &quot;C&quot;</code>, чтобы сообщить компилятору, что он должен использовать [соглашение о вызове языка Си] (C calling convention) для этой функции (вместо неопределенного соглашения о вызове языка Rust). Причина, по которой мы назвали точку входа именем <code>_start</code>, заключается в том, что это имя точки входа по умолчанию для большинства систем. </p>
+<p>Возвращаемый тип <code>!</code> говорит о том, что функция помечена как расходящаяся (diverging), то есть никогда не возвращает результат. Это необходимо, потому что точка входа не вызывается какой-либо функцией, но вызывается непосредственно операционной системой или загрузчиком (bootloader). Поэтому вместо возврата значений точка входа должна, например, вызывать <a href="https://en.wikipedia.org/wiki/Exit_(system_call)">системную функцию <code>exit</code></a>. В нашем случае выключение устройства может быть разумным действием, так как больше ничего не остается делать, если исполняемый файл завершает свою работу. На данный момент мы выполняем требование, создавая бесконечный цикл.</p>
+<p>Если запустить <code>cargo build</code> теперь, то мы получим ужасную ошибку <em>компоновщика</em>.</p>
+<h2 id="Ошибки-компоновщика"><a class="header" href="#Ошибки-компоновщика">Ошибки компоновщика</a></h2>
+<p>Компоновщик - это программа, которая упаковывает сгенерированный код в исполняемый файл. Поскольку формат исполняемый файлов в Linux, Windows и macOS различный, в каждой ОС есть собственный компоновщик. Так как компоновщики разные, то и сообщения об ошибке будут отличаться. Но причина ошибок одинаковая: конфигурация компоновщика по умолчанию предполагает, что наша программа зависит от среды выполнения Си, хотя это не так.</p>
+<p>Для устранения ошибки мы должны сообщить компоновщику, что он не должен подключать среду исполнения Си. Мы можем сделать это передав определенный набор аргументов компоновщику или скомпилировать наш файл для ”голого железа”.</p>
+<h3 id="Компиляция-для-голого-железа"><a class="header" href="#Компиляция-для-голого-железа">Компиляция для ”голого железа”</a></h3>
+<p>По умолчанию Rust пытается создать исполняемый файл, который можно запустить на текущей системе. Например, если вы используете Windows на архитектуре <code>x86_64</code>, то Rust пытается создать <code>.exe</code> файл, который использует <code>x86_64</code> инструкции. Текущую операционную систему также называют <code>host system</code>.</p>
+<p>Для описания различных сред исполнения Rust использует строку называемую <a href="https://clang.llvm.org/docs/CrossCompilation.html#target-triple"><em>target triple</em></a>. Вы можете увидеть <code>target triple</code> для вашей системы с помощью команды <code>rustc --version --verbose</code>:</p>
 <pre><code>rustc 1.35.0-nightly (474e7a648 2019-04-07)
 binary: rustc
 commit-hash: 474e7a6486758ea6fc761893b1a49cd9076fb0ab
@@ -281,15 +239,15 @@ host: x86_64-unknown-linux-gnu
 release: 1.35.0-nightly
 LLVM version: 8.0
 </code></pre>
-<p>The above output is from a <code>x86_64</code> Linux system. We see that the <code>host</code> triple is <code>x86_64-unknown-linux-gnu</code>, which includes the CPU architecture (<code>x86_64</code>), the vendor (<code>unknown</code>), the operating system (<code>linux</code>), and the <a href="https://en.wikipedia.org/wiki/Application_binary_interface">ABI</a> (<code>gnu</code>).</p>
-<p>By compiling for our host triple, the Rust compiler and the linker assume that there is an underlying operating system such as Linux or Windows that use the C runtime by default, which causes the linker errors. So to avoid the linker errors, we can compile for a different environment with no underlying operating system.</p>
-<p>An example for such a bare metal environment is the <code>thumbv7em-none-eabihf</code> target triple, which describes an <a href="https://en.wikipedia.org/wiki/Embedded_system">embedded</a> <a href="https://en.wikipedia.org/wiki/ARM_architecture">ARM</a> system. The details are not important, all that matters is that the target triple has no underlying operating system, which is indicated by the <code>none</code> in the target triple. To be able to compile for this target, we need to add it in rustup:</p>
+<p>Приведенный выше вывод получен из <code>x86_64</code> Linux системы. Мы видим, что <code>host</code> система - это <code>x86_64-unknown-linux-gnu</code>. Это означает, что система использует <code>x86_64</code> архитектуру, поставщиком ОС является  <code>unknown</code>, операционная система - <code>linux</code>, а <a href="https://en.wikipedia.org/wiki/Application_binary_interface">ABI</a> - (<code>gnu</code>).</p>
+<p>При компиляции для нашей основной среды, компилятор Rust и компоновщик предполагали, что существует базовая операционная система, такая как Linux или Windows, использующая среду выполнения Си по умолчанию, что привело к ошибкам компоновщика. Чтобы избежать ошибки компоновщика, мы скомпилируем исполняемый файл для другой среды, которая не требует базовой ОС.</p>
+<p>Примером таковой является среда &quot;голого железа&quot;, именуемая как <code>thumbv7em-none-eabihf</code>, которая описывает [встроенную] <a href="https://en.wikipedia.org/wiki/ARM_architecture">ARM</a> систему. Детали нам не важны, самое главное только то, что target triple не имеет базовой ОС, на что указывает <code>none</code> в названии target triple. Чтобы иметь возможность компилировать для этого target, мы также должны добавить его в rustup:</p>
 <pre><code>rustup target add thumbv7em-none-eabihf
 </code></pre>
-<p>This downloads a copy of the standard (and core) library for the system. Now we can build our freestanding executable for this target:</p>
+<p>Эта команда загрузит копию стандартной библиотеки и ядро языка для системы. Теперь мы можем создать наш автономный исполняемый файл для этого target'a;</p>
 <pre><code>cargo build --target thumbv7em-none-eabihf
 </code></pre>
-<p>By passing a <code>--target</code> argument we <a href="https://en.wikipedia.org/wiki/Cross_compiler">cross compile</a> our executable for a bare metal target system. Since the target system has no operating system, the linker does not try to link the C runtime and our build succeeds without any linker errors.</p>
+<p>Используя аргумент <code>--target</code> мы <a href="https://en.wikipedia.org/wiki/Cross_compiler">кросс компилируем</a> наш исполняемый файл для bare metal target system. Поскольку target system не имеет операционной системы, компоновщик не пытается подключить среду выполнения Си и создание нашего исполняемого файла происходит успешно без ошибок компоновщика.</p>
 <p>This is the approach that we will use for building our OS kernel. Instead of <code>thumbv7em-none-eabihf</code>, we will use a <a href="https://doc.rust-lang.org/rustc/targets/custom.html">custom target</a> that describes a <code>x86_64</code> bare metal environment. The details will be explained in the next post.</p>
 <h3 id="linker-arguments"><a class="header" href="#linker-arguments">Linker Arguments</a></h3>
 <p>Instead of compiling for a bare metal system, it is also possible to resolve the linker errors by passing a certain set of arguments to the linker. This isn't the approach that we will use for our kernel, therefore this section is optional and only provided for completeness. Click on <em>&quot;Linker Arguments&quot;</em> below to show the optional content.</p>
@@ -409,7 +367,7 @@ pub extern &quot;C&quot; fn _start() -&gt; ! {
     loop {}
 }
 
-/// This function is called on panic.
+/// Эта функция вызывается при панике
 #[panic_handler]
 fn panic(_info: &amp;PanicInfo) -&gt; ! {
     loop {}
@@ -442,19 +400,25 @@ cargo rustc -- -C link-args=&quot;/ENTRY:_start /SUBSYSTEM:console&quot;
 cargo rustc -- -C link-args=&quot;-e __start -static -nostartfiles&quot;
 </code></pre>
 <p>Note that this is just a minimal example of a freestanding Rust binary. This binary expects various things, for example that a stack is initialized when the <code>_start</code> function is called. <strong>So for any real use of such a binary, more steps are required</strong>.</p>
-<h2 id="whats-next"><a class="header" href="#whats-next">What's next?</a></h2>
-<p>The <a href="@/edition-2/posts/02-minimal-rust-kernel/index.html">next post</a> explains the steps needed for turning our freestanding binary into a minimal operating system kernel. This includes creating a custom target, combining our executable with a bootloader, and learning how to print something to the screen.</p>
+<h2 id="Что-дальше"><a class="header" href="#Что-дальше">Что дальше?</a></h2>
+<p>В [следующей статье] объясняются шаги, необходимые для превращения нашего автономного бинарного файла в небольшое ядро операционной системы. Это включает в себя создание настраиваемой цели (target), объединение нашего исполняемого файла с загрузчиком и обучение тому, как выводить что-нибудь на экран.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                            <a rel="next" href="../01-freestanding-rust-binary/disabling-std.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
                         <div style="clear: both"></div>
                     </nav>
                 </div>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="next" href="../01-freestanding-rust-binary/disabling-std.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
             </nav>
 
         </div>
@@ -462,12 +426,12 @@ cargo rustc -- -C link-args=&quot;-e __start -static -nostartfiles&quot;
         <script type="text/javascript">
             window.playground_copyable = true;
         </script>
-        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
-        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
-        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
 
         <!-- Custom JS scripts -->
     </body>
