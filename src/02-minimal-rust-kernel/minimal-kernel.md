@@ -107,12 +107,14 @@ The `features` field enables/disables target features. We disable the `mmx` and 
 
 [Single Instruction Multiple Data (SIMD)]: https://en.wikipedia.org/wiki/SIMD
 
-A problem with disabling SIMD is that floating point operations on `x86_64` require SIMD registers by default. To solve this problem, we add the `soft-float` feature, which emulates all floating point operations through software functions based on normal integers.
+Отключая SIMD, возникает другая проблема. По умолчанию для операций с плавающей запятой на `x86_64` требуются SIMD-регистры. Поэтому мы добавляем `soft-float` функцию, которая эмулирует все операции с плавающей запятой с помощью программных функций, основанных на обычных целых числах.
 
 For more information, see our post on [disabling SIMD](@/edition-2/posts/02-minimal-rust-kernel/disable-simd/index.md).
 
-#### Putting it Together
-Our target specification file now looks like this:
+Подробнее об отключении SIMD можно узнать [здесь].
+
+#### Собираем все вместе
+Наш конфигурационный файл для цели выглядит так:
 
 ```json
 {
@@ -132,10 +134,14 @@ Our target specification file now looks like this:
 }
 ```
 
-### Сборка нашего ядра
+### Компиляция нашего ядра
 Compiling for our new target will use Linux conventions (I'm not quite sure why, I assume that it's just LLVM's default). This means that we need an entry point named `_start` as described in the [previous post]:
 
+При компиляции для нашей новой цели будут использованы соглашения, использующиеся в Linux. Это означает, что нам нужна точка входа с именем `_start`, как написано в [предыдущей главе].
+
 [previous post]: @/edition-2/posts/01-freestanding-rust-binary/index.md
+
+TODO перевести код
 
 ```rust
 // src/main.rs
@@ -159,9 +165,9 @@ pub extern "C" fn _start() -> ! {
 }
 ```
 
-Note that the entry point needs to be called `_start` regardless of your host OS.
+Обратите внимание, что точка входа должна называться `_start` независимо от вашей текущей ОС.
 
-We can now build the kernel for our new target by passing the name of the JSON file as `--target`:
+Теперь мы можем скомпилировать ядро для нашей новой цели, передав флаг `--target` с именем JSON-файла:
 
 ```
 > cargo build --target x86_64-blog_os.json
@@ -169,13 +175,13 @@ We can now build the kernel for our new target by passing the name of the JSON f
 error[E0463]: can't find crate for `core`
 ```
 
-It fails! The error tells us that the Rust compiler no longer finds the [`core` library]. This library contains basic Rust types such as `Result`, `Option`, and iterators, and is implicitly linked to all `no_std` crates.
+Мы получаем ошибку! Она сообщает нам, что компилятор Rust не может найти [библиотеку `core`]. Эта библиотека содержит базовые типы, такие как `Result`, `Option` и итераторы. Она неявно подключается во все `no_std` крейты.
 
 [`core` library]: https://doc.rust-lang.org/nightly/core/index.html
 
-The problem is that the core library is distributed together with the Rust compiler as a _precompiled_ library. So it is only valid for supported host triples (e.g., `x86_64-unknown-linux-gnu`) but not for our custom target. If we want to compile code for other targets, we need to recompile `core` for these targets first.
+Проблема в том, что библиотека `core` распространяется вместе с компилятором Rust как _перекомпилированная_ библиотека. Таким образом, она работает только с поддерживаемыми триплетами (например `x86_64-unknown-linux-gnu`), но не с пользовательскими. Чтобы исправить ошибку, нам нужно скомпилировать `core` библиотеку для нашей цели. 
 
-#### The `build-std` Option
+#### Опция `build-std`
 
 That's where the [`build-std` feature] of cargo comes in. It allows to recompile `core` and other standard library crates on demand, instead of using the precompiled versions shipped with the Rust installation. This feature is very new and still not finished, so it is marked as "unstable" and only available on [nightly Rust compilers].
 
@@ -212,7 +218,7 @@ After setting the `unstable.build-std` configuration key and installing the `rus
 
 We see that `cargo build` now recompiles the `core`, `rustc-std-workspace-core` (a dependency of `compiler_builtins`), and `compiler_builtins` libraries for our custom target.
 
-#### Memory-Related Intrinsics
+#### Memory-Related Intrinsics Внутренние функции для работы с памятью
 
 The Rust compiler assumes that a certain set of built-in functions is available for all systems. Most of these functions are provided by the `compiler_builtins` crate that we just recompiled. However, there are some memory-related functions in that crate that are not enabled by default because they are normally provided by the C library on the system. These functions include `memset`, which sets all bytes in a memory block to a given value, `memcpy`, which copies one memory block to another, and `memcmp`, which compares two memory blocks. While we didn't need any of these functions to compile our kernel right now, they will be required as soon as we add some more code to it (e.g. when copying structs around).
 
@@ -241,7 +247,7 @@ Behind the scenes, this flag enables the [`mem` feature] of the `compiler_builti
 
 With this change, our kernel has valid implementations for all compiler-required functions, so it will continue to compile even if our code gets more complex.
 
-#### Set a Default Target
+#### Установка цели по умолчанию
 
 To avoid passing the `--target` parameter on every invocation of `cargo build`, we can override the default target. To do this, we add the following to our [cargo configuration] file at `.cargo/config.toml`:
 
@@ -258,7 +264,7 @@ This tells `cargo` to use our `x86_64-blog_os.json` target when no explicit `--t
 
 We are now able to build our kernel for a bare metal target with a simple `cargo build`. However, our `_start` entry point, which will be called by the boot loader, is still empty. It's time that we output something to screen from it.
 
-### Printing to Screen
+### Вывод текста на экран
 The easiest way to print text to the screen at this stage is the [VGA text buffer]. It is a special memory area mapped to the VGA hardware that contains the contents displayed on screen. It normally consists of 25 lines that each contain 80 character cells. Each character cell displays an ASCII character with some foreground and background colors. The screen output looks like this:
 
 [VGA text buffer]: https://en.wikipedia.org/wiki/VGA-compatible_text_mode
