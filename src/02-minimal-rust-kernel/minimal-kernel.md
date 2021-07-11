@@ -1,12 +1,28 @@
-## Небольшое ядро
+# Небольшое ядро
+
 Теперь, когда мы примерно знаем, как загружается компьютер, пришло время создать наше собственное небольшое ядро. Наша цель - создать образ диска, который выводит "Hello World!" на экран при загрузке. Для этого мы воспользуемся нашим [автономным бинарным файлом] из предыдущей главы.
 
 Как вы помните, мы создали автономный бинарный файл с помощью `cargo`, но в зависимости от ОС нам потребовались разные имена точек входа и разные флаги компилятора. Дело в том, что по умолчанию `cargo` создает исполняемый файл для _хост-системы_, т. е. для системы, в которой вы сейчас работаете. Это не то, что мы хотим, потому что ядро на начальных стадиях загрузки компьютера, где еще нет никакой ОС. Вместо этого мы хотим скомпилировать программу для четко определенной _целевой системы_.
 
-### Установка Rust Nightly
-У Rust есть 3 release-ветки: _stable_, _beta_, и _nightly_. [The Rust Book] хорошо объясняет разницу между этими ветками, поэтому уделите пару минут [этому материалу](https://doc.rust-lang.org/book/appendix-07-nightly-rust.html#choo-choo-release-channels-and-riding-the-trains). Для создания ОС нам нужны некоторые экспериментальные возможности, которые доступны только в nightly-режиме, поэтому нам необходимо установить nightly версию компилятора Rust.
+## Установка Rust Nightly
+
+У Rust есть 3 канала выпуска раст: _stable_, _beta_, и _nightly_. [The Rust Book] хорошо объясняет разницу между этими ветками, поэтому уделите пару минут [этому материалу][release-channels]. Для создания ОС нам нужны некоторые экспериментальные возможности, которые доступны только в nightly-режиме, поэтому нам необходимо установить nightly версию компилятора Rust.
+
+[release-channels]: https://doc.rust-lang.ru/book/appendix-07-nightly-rust.html
 
 Для этого я настоятельно рекомендую [rustup]. Он позволяет устанавливать nightly, beta, и stable компиляторы рядом друг с другом и легко обновлять. Чтобы использовать nightly компилятор для текущего проекта, выполните команду  `rustup override set nightly`. Как вариант, вы можете добавить файл `rust-toolchain` с содержимым `nightly` в корневую директорию проекта. Проверить, что nightly компилятор успешно установился, можно командой `rustc --version`: версия должна оканчиваться на `-nightly`.
+
+[Rustup][rustup] делает лёгким изменение между различными каналами Rust, на глобальном или локальном для проекта уровне. По умолчанию устанавливается стабильная версия Rust. Для установки ночной версии выполните команду:
+
+```console
+$ rustup toolchain install nightly
+```
+
+Чтобы использовать nightly-компилятор в текущем проекте, необходимо выполнить команду:
+
+```console
+$ rustup override set nightly
+```
 
 [rustup]: https://www.rustup.rs/
 
@@ -14,109 +30,12 @@ Nightly-компилятор позволяет нам использовать 
 
 [`asm!` macro]: https://doc.rust-lang.org/unstable-book/library-features/asm.html
 
-### Настройка цели
-Cargo поддерживает различные целевые системы. Для выбора таковой необходимо использовать параметр командной строки `--target`. Цель также называют _[target triple]_. Она
-содержит в своем названии архитектуру процессора, поставщика, операционную систему и [ABI]. Например, цель с названием `x86_64-unknown-linux-gnu` описывает систему с `x86_64` CPU без четкого поставщика, с операционной системой Linux и GNU ABI. Rust поддерживает [большое количество разнообразных целей][platform-support], в том числе `arm-linux-androideabi` для Android, `wasm32-unknown-unknown` для [WebAssembly](https://www.hellorust.com/setup/wasm-target/).
-
-[target triple]: https://clang.llvm.org/docs/CrossCompilation.html#target-triple
-[ABI]: https://stackoverflow.com/a/2456882
-[platform-support]: https://forge.rust-lang.org/release/platform-support.html
-[custom-targets]: https://doc.rust-lang.org/nightly/rustc/targets/custom.html
-
-Однако для нашей целевой системы нам требуются некоторые специальные параметры конфигурации (например, отсутствие базовой ОС), поэтому ни одна из [существующих целей][platform-support] нам не подходит. К счастью, Rust позволяет нам определить свою [собственную цель][custom-targets] с помощью JSON-файла. Например, JSON-файл для цели `x86_64-unknown-linux-gnu` выглядит так:
-
-```json
-{
-    "llvm-target": "x86_64-unknown-linux-gnu",
-    "data-layout": "e-m:e-i64:64-f80:128-n8:16:32:64-S128",
-    "arch": "x86_64",
-    "target-endian": "little",
-    "target-pointer-width": "64",
-    "target-c-int-width": "32",
-    "os": "linux",
-    "executables": true,
-    "linker-flavor": "gcc",
-    "pre-link-args": ["-m64"],
-    "morestack": false
-}
-```
-
-Большинство полей требуются LLVM для генерации кода для этой платформы. Например, поле [`data-layout`] определяет размер различных целочисленных типов, типов с плавающей запятой и указателей. Также есть поля, которые Rust использует для условной компиляции, например, поле `target-pointer-width`. Третий тип полей определяет, как должен быть скомпилирован крейт. Например, поле `pre-link-args` определяет аргументы, которые будут переданы [компоновщику][linker].
-
-[`data-layout`]: https://llvm.org/docs/LangRef.html#data-layout
-[linker]: https://en.wikipedia.org/wiki/Linker_(computing)
-
-Мы будем компилировать наше ядро для `x86_64`, поэтому наше описание цели будет похоже на указанное выше. Начнем с создания файла `x86_64-blog_os.json` (можно выбрать любое имя) со следующим содержимым:
-
-```json
-{
-    "llvm-target": "x86_64-unknown-none",
-    "data-layout": "e-m:e-i64:64-f80:128-n8:16:32:64-S128",
-    "arch": "x86_64",
-    "target-endian": "little",
-    "target-pointer-width": "64",
-    "target-c-int-width": "32",
-    "os": "none",
-    "executables": true
-}
-```
-
-Обратите внимание, что мы изменили ОС в поле `llvm-target` и там, где раньше был `linux`, теперь `none`. 
-
-Добавим еще два поля:
-
-
-```json
-"linker-flavor": "ld.lld",
-"linker": "rust-lld",
-```
-
-Вместо использования компоновщика по умолчанию (который может не поддерживать цели Linux), мы используем кроссплатформенный компоновщик [LLD], поставляемый с Rust, для компоновки нашего ядра.
-
-[LLD]: https://lld.llvm.org/
-
-```json
-"panic-strategy": "abort",
-```
-
-This setting specifies that the target doesn't support [stack unwinding] on panic, so instead the program should abort directly. This has the same effect as the `panic = "abort"` option in our Cargo.toml, so we can remove it from there. (Note that in contrast to the Cargo.toml option, this target option also applies when we recompile the `core` library later in this post. So be sure to add this option, even if you prefer to keep the Cargo.toml option.)
-
-
-TODO перечитать
-Параметр `panic-strategy` указывает, что цель не поддерживает [раскрутку стека] при панике, поэтому, вместо раскрутки, программа должна сразу завершать свою работу. Такой же эффект мы уже получали с помощью `panic = "abort"` в нашем `Cargo.toml`. Значит, что мы можем удалить `panic = "abort"` из конфигурационного файла. (Обратите внимание, что в отличие от параметра в `Cargo.toml`, `panic-strategy` применится и при компиляции `core` в этой главе.)
-
-[stack unwinding]: https://www.bogotobogo.com/cplusplus/stackunwinding.php
-
-```json
-"disable-redzone": true,
-```
-
-Мы пишем ядро, поэтому в какой-то момент придется обрабатывать прерывания. Чтобы делать это безопасно, мы должны отключить определенную оптимизацию указателя стека под названием _"красная зона"_, потому что в противном случае это может привести к повреждению стека. О том, как отключить красную зону, можно узнать [здесь].
-
-[disabling the red zone]: @/edition-2/posts/02-minimal-rust-kernel/disable-red-zone/index.md
-
-```json
-"features": "-mmx,-sse,+soft-float",
-```
-
-The `features` field enables/disables target features. We disable the `mmx` and `sse` features by prefixing them with a minus and enable the `soft-float` feature by prefixing it with a plus. Note that there must be no spaces between different flags, otherwise LLVM fails to interpret the features string.
-
-Поле `features` включает и отключает функции, указываемые для цели. Мы отключаем `mmx` и `sse`, добавляя к ним знак минуса и включаем `soft-float` с помощью знака плюса. Обратите внимание, что между флагами не должно быть пробелов.
-
-`mmx` и `sse` определяют поддержку инструкций [Single Instruction Multiple Data (SIMD)], которые часто могут значительно ускорить работу программы. Однако использование больших SIMD-регистров в ядре ОС приводит к проблемам с производительностью. Причина в том, что ядру необходимо приводить все регистры в исходное состояние перед продолжением прерванной программы. Это означает, что ядро должно сохранить полное SIMD-состояние в основной памяти при каждом вызове или аппаратном прерывании. Поскольку SIMD-состояние очень велико (512-1600 байт), а прерывания могут происходить очень часто, эти доп. операции сохранения и восстановления значительно снижают производительность. Чтобы этого избежать, мы отключаем SIMD для нашего ядра (но не для приложений, работающих поверх ядра!).
-
-[Single Instruction Multiple Data (SIMD)]: https://en.wikipedia.org/wiki/SIMD
-
-Отключая SIMD, возникает другая проблема. По умолчанию для операций с плавающей запятой на `x86_64` требуются SIMD-регистры. Поэтому мы добавляем `soft-float` функцию, которая эмулирует все операции с плавающей запятой с помощью программных функций, основанных на обычных целых числах.
-
-For more information, see our post on [disabling SIMD](@/edition-2/posts/02-minimal-rust-kernel/disable-simd/index.md).
-
-Подробнее об отключении SIMD можно узнать [здесь].
-
 #### Собираем все вместе
+
 Наш конфигурационный файл для цели выглядит так:
 
 ```json
+//
 {
     "llvm-target": "x86_64-unknown-none",
     "data-layout": "e-m:e-i64:64-f80:128-n8:16:32:64-S128",
@@ -135,6 +54,7 @@ For more information, see our post on [disabling SIMD](@/edition-2/posts/02-mini
 ```
 
 ### Компиляция нашего ядра
+
 Compiling for our new target will use Linux conventions (I'm not quite sure why, I assume that it's just LLVM's default). This means that we need an entry point named `_start` as described in the [previous post]:
 
 При компиляции для нашей новой цели будут использованы соглашения, использующиеся в Linux. Это означает, что нам нужна точка входа с именем `_start`, как написано в [предыдущей главе].
@@ -179,7 +99,7 @@ error[E0463]: can't find crate for `core`
 
 [`core` library]: https://doc.rust-lang.org/nightly/core/index.html
 
-Проблема в том, что библиотека `core` распространяется вместе с компилятором Rust как _перекомпилированная_ библиотека. Таким образом, она работает только с поддерживаемыми триплетами (например `x86_64-unknown-linux-gnu`), но не с пользовательскими. Чтобы исправить ошибку, нам нужно скомпилировать `core` библиотеку для нашей цели. 
+Проблема в том, что библиотека `core` распространяется вместе с компилятором Rust как _перекомпилированная_ библиотека. Таким образом, она работает только с поддерживаемыми триплетами (например `x86_64-unknown-linux-gnu`), но не с пользовательскими. Чтобы исправить ошибку, нам нужно скомпилировать `core` библиотеку для нашей цели.
 
 #### Опция `build-std`
 
@@ -222,11 +142,17 @@ We see that `cargo build` now recompiles the `core`, `rustc-std-workspace-core` 
 
 The Rust compiler assumes that a certain set of built-in functions is available for all systems. Most of these functions are provided by the `compiler_builtins` crate that we just recompiled. However, there are some memory-related functions in that crate that are not enabled by default because they are normally provided by the C library on the system. These functions include `memset`, which sets all bytes in a memory block to a given value, `memcpy`, which copies one memory block to another, and `memcmp`, which compares two memory blocks. While we didn't need any of these functions to compile our kernel right now, they will be required as soon as we add some more code to it (e.g. when copying structs around).
 
+Компилятор Rust предполагает, что определенный набор функций доступен для всех систем. Большинство этих функций есть в только что скомпилированном крейте `compiler_builtins`. Однако некоторые функции, связанные с памятью, отсутствуют по умолчанию, потому что обычно они предоставляются стандартной библиотекой Си, которая установлена в системе. Например, такие функции, как `memset`, который устанавливает значение для всех байтов в блоке памяти заданное значение, `memcpy`, которая копирует один блок памяти в другой, `memcmp`, который сравнивает два блока памяти. Хотя нам и не требуются какие-либо из этих функций прямо сейчас для компиляции нашего ядра, они потребуются, как только мы добавить еще немного кода (например, при копирование структур).
+
 Since we can't link to the C library of the operating system, we need an alternative way to provide these functions to the compiler. One possible approach for this could be to implement our own `memset` etc. functions and apply the `#[no_mangle]` attribute to them (to avoid the automatic renaming during compilation). However, this is dangerous since the slightest mistake in the implementation of these functions could lead to undefined behavior. For example, you might get an endless recursion when implementing `memcpy` using a `for` loop because `for` loops implicitly call the [`IntoIterator::into_iter`] trait method, which might call `memcpy` again. So it's a good idea to reuse existing well-tested implementations instead.
+
+Поскольку мы не можем использовать стандартную библиотеку Си, нам нужен альтернативный способ предоставить эти функции компилятору. Одним из возможных способов является собственная реализация функций, таких как `memset` и т. д., с использованием атрибута `#[no_mangle]` (чтобы избежать искажения имен компилятором). Однако это опасно, поскольку малейшая ошибка в реализации этих функций может привести к неопределенному поведению. Например, вы можете получить бесконечную рекурсию при реализации `memcpy` с использованием цикла `for`, потому что цикл `for` неявно вызывает метод [`IntoIterator::into_iter`] трейта, который может снова вызвать `memcpy` снова. Поэтому рекомендуется переиспользовать уже существующие, хорошо протестированные реализации.
 
 [`IntoIterator::into_iter`]: https://doc.rust-lang.org/stable/core/iter/trait.IntoIterator.html#tymethod.into_iter
 
 Fortunately, the `compiler_builtins` crate already contains implementations for all the needed functions, they are just disabled by default to not collide with the implementations from the C library. We can enable them by setting cargo's [`build-std-features`] flag to `["compiler-builtins-mem"]`. Like the `build-std` flag, this flag can be either passed on the command line as `-Z` flag or configured in the `unstable` table in the `.cargo/config.toml` file. Since we always want to build with this flag, the config file option makes more sense for us:
+
+К счастью, крейт `compiler_builtins` уже содержит реализацию всех необходимых функций. Они просто отключены по умолчанию, чтобы не конфликтовать с функциями из стандартной библиотеки Си. Мы можем включить их, установив в настройках cargo флаг [`build-std-features`] в значение `["compiler-builtins-mem"]`. Как и флаг `build-std`, этот флаг может быть передан в командной строке как флаг `-Z` или настроен в таблице `unstable` в файле `.cargo/config.toml`. Поскольку мы хотим, чтобы этот флаг всегда использовался при сборке, мы настроим конфигурационный файл:
 
 [`build-std-features`]: https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#build-std-features
 
@@ -246,15 +172,16 @@ Behind the scenes, this flag enables the [`mem` feature] of the `compiler_builti
 [`memcpy` etc. implementations]: https://github.com/rust-lang/compiler-builtins/blob/eff506cd49b637f1ab5931625a33cef7e91fbbf6/src/mem.rs#L12-L69
 
 With this change, our kernel has valid implementations for all compiler-required functions, so it will continue to compile even if our code gets more complex.
+Теперь наше ядро содержит реализацию всех функций, необходимых компилятору в будущем.
 
-#### Установка цели по умолчанию
+## Установка цели по умолчанию
 
-To avoid passing the `--target` parameter on every invocation of `cargo build`, we can override the default target. To do this, we add the following to our [cargo configuration] file at `.cargo/config.toml`:
+Каждый раз вручную вызывать компилятор с флагом `--target` слишком не удобно, поэтому мы попросим об этом cargo. Просто добавим новый параметр в наш [конфигурационный файл][cargo configuration] `.cargo/config.toml`:
 
 [cargo configuration]: https://doc.rust-lang.org/cargo/reference/config.html
 
 ```toml
-# in .cargo/config.toml
+# в .cargo/config.toml
 
 [build]
 target = "x86_64-blog_os.json"
@@ -262,18 +189,21 @@ target = "x86_64-blog_os.json"
 
 This tells `cargo` to use our `x86_64-blog_os.json` target when no explicit `--target` argument is passed. This means that we can now build our kernel with a simple `cargo build`. For more information on cargo configuration options, check out the [official documentation][cargo configuration].
 
-We are now able to build our kernel for a bare metal target with a simple `cargo build`. However, our `_start` entry point, which will be called by the boot loader, is still empty. It's time that we output something to screen from it.
+Теперь cargo неявно будет передавать `--target x86_64-blog_os.json` компилятору, поэтому, чтобы собрать наше ядро, достаточно вызвать `cargo build`. Подробнее о `.cargo/config.toml` можно узнать в [официально документации][cargo configuration].
 
-### Вывод текста на экран
-The easiest way to print text to the screen at this stage is the [VGA text buffer]. It is a special memory area mapped to the VGA hardware that contains the contents displayed on screen. It normally consists of 25 lines that each contain 80 character cells. Each character cell displays an ASCII character with some foreground and background colors. The screen output looks like this:
+Теперь мы можем собрать наше ядро для системы без базовой ОС. Однако наша функция `_start`, которая будет вызвана загрузчиком, по-прежнему пуста. Пришло время вывести что-нибудь на экран.
+
+## Вывод текста на экран
+
+Самый простой способ вывести текст на экран — воспользоваться [текстовым VGA буфером][VGA text buffer]. Это специальная область памяти, которая содержит те данные, которые отображаются на экране. Обычно буфер состоит из 25 строк, каждая из которых содержит по 80 символьных ячеек. Каждая символьная ячейка отображает ASCII-символ некоторыми цветами переднего плана и фона. Вывод на экран выглядит так:
 
 [VGA text buffer]: https://en.wikipedia.org/wiki/VGA-compatible_text_mode
 
-![screen output for common ASCII characters](https://upload.wikimedia.org/wikipedia/commons/f/f8/Codepage-437.png)
+![вывод на экран обычных ASCII-символов](https://upload.wikimedia.org/wikipedia/commons/f/f8/Codepage-437.png)
 
-We will discuss the exact layout of the VGA buffer in the next post, where we write a first small driver for it. For printing “Hello World!”, we just need to know that the buffer is located at address `0xb8000` and that each character cell consists of an ASCII byte and a color byte.
+Мы обсудим точное строение VGA буфера в следующей главе, где мы напишем для него небольшой драйвер. Для вывода «Hello World!» нам просто нужно знать, что буфер расположен по адресу `0xb8000` и что каждая символьная ячейка состоит из байта ASCII и байта цвета.
 
-The implementation looks like this:
+Реализация выглядит так:
 
 ```rust
 static HELLO: &[u8] = b"Hello World!";
@@ -281,7 +211,7 @@ static HELLO: &[u8] = b"Hello World!";
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     let vga_buffer = 0xb8000 as *mut u8;
-
+    
     for (i, &byte) in HELLO.iter().enumerate() {
         unsafe {
             *vga_buffer.offset(i as isize * 2) = byte;
@@ -312,3 +242,5 @@ I want to emphasize that **this is not the way we want to do things in Rust!** I
 So we want to minimize the use of `unsafe` as much as possible. Rust gives us the ability to do this by creating safe abstractions. For example, we could create a VGA buffer type that encapsulates all unsafety and ensures that it is _impossible_ to do anything wrong from the outside. This way, we would only need minimal amounts of `unsafe` and can be sure that we don't violate [memory safety]. We will create such a safe VGA buffer abstraction in the next post.
 
 [memory safety]: https://en.wikipedia.org/wiki/Memory_safety
+
+

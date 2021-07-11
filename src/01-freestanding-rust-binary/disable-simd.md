@@ -13,7 +13,11 @@
 Чтобы их отключить, нам нужно добавить в поле `features` название этих функций со знаком минус:
 
 ```json
-"features": "-mmx,-sse"
+// в x86_64-blog_os.json
+{
+    // ...
+    "features": "-mmx,-sse"
+}
 ```
 
 ## Операции с плавающей запятой
@@ -23,9 +27,12 @@
 К счастью, LLVM поддерживает функцию `soft-float`, которая эмулирует все операции с плавающей точкой с помощью программных функций, основанных на целых числах. Добавив `soft-float` с знаком плюс, мы включим поддержку вещественных чисел для нашего ядра:
 
 ```json
-"features": "-mmx,-sse,+soft-float"
+// в x86_64-blog_os.json
+{
+    // ...
+    "features": "-mmx,-sse,+soft-float"
+}
 ```
-<!-- links -->
 [Single Instruction Multiple Data (SIMD)]: https://ru.wikipedia.org/wiki/SIMD
 [x87]: https://ru.wikipedia.org/wiki/X87
 [MMX]: https://ru.wikipedia.org/wiki/MMX
