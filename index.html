@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Автономный исполняемый файл - Пишем операционную систему на Rust</title>
+        <title>Пишем операционную систему на Rust - Пишем операционную систему на Rust</title>
         <!-- Custom HTML head -->
         
 
@@ -77,7 +77,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="01-freestanding-rust-binary/introduction.html"><strong aria-hidden="true">1.</strong> Автономный исполняемый файл</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="01-freestanding-rust-binary/disabling-std.html"><strong aria-hidden="true">1.1.</strong> Отключение стандартной библиотеки</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">Пишем операционную систему на Rust</a></li><li class="chapter-item expanded "><a href="01-freestanding-rust-binary/description.html"><strong aria-hidden="true">1.</strong> Hello World на своей ОС</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="01-freestanding-rust-binary/introduction.html"><strong aria-hidden="true">1.1.</strong> Введение</a></li><li class="chapter-item expanded "><a href="01-freestanding-rust-binary/own-target-triple.html"><strong aria-hidden="true">1.2.</strong> Создание целевого триплета</a></li><li class="chapter-item expanded "><a href="01-freestanding-rust-binary/disabling-std.html"><strong aria-hidden="true">1.3.</strong> Отключение стандартной библиотеки</a></li><li class="chapter-item expanded "><a href="01-freestanding-rust-binary/panic_and_eh_personality.html"><strong aria-hidden="true">1.4.</strong> Решение проблем с panic и eh_personality</a></li><li class="chapter-item expanded "><a href="01-freestanding-rust-binary/start-attr.html"><strong aria-hidden="true">1.5.</strong> Атрибут start</a></li><li class="chapter-item expanded "><a href="01-freestanding-rust-binary/summary.html"><strong aria-hidden="true">1.6.</strong> Резюме</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -137,277 +137,16 @@
 
                 <div id="content" class="content">
                     <main>
-                        <p>+++
-title = &quot;A Freestanding Rust Binary&quot;
-weight = 1
-path = &quot;freestanding-rust-binary&quot;
-date = 2018-02-10</p>
-<p>[extra]
-chapter = &quot;Bare Bones&quot;
-+++</p>
-<p>Первый шаг в разработке нашего собственного ядра операционной системы - создание исполняемого файла Rust, который не использует стандартную библиотеку. Это позволяет запускать код Rust на <a href="https://en.wikipedia.org/wiki/Bare_machine">голом железе</a> (bare metal) без базовой операционной системы.</p>
-<!-- more -->
-<p>Этот блог открыто разрабатывается на <a href="https://github.com/phil-opp/blog_os">Github</a>. Если у вас есть какие-то проблемы или вопросы, пожалуйста, откройте issue здесь. Вы также можете оставлять комментарии <a href="#comments">внизу</a>. Весь исходный код с этой статьи можно найти в [<code>post-01</code>].</p>
-<!-- toc -->
-<h2 id="Введение"><a class="header" href="#Введение">Введение</a></h2>
-<p>Чтобы написать ядро операционной системы, нам нужен код, который не зависит от каких-либо функций операционной системы. Это означает, что мы не можем использовать потоки (threads), файлы (files), память в куче (heap memory), сеть (the network), случайные числа (random numbers), стандартный вывод (standard output) или любые другие функции, требующие абстракции со стороны операционной системы (OS abstractions) или определенного оборудования. В этом есть смысл, поскольку мы пытаемся написать собственную операционную систему и собственные драйверы.</p>
-<p>Это означает, что мы не можем использовать большую часть <a href="https://doc.rust-lang.org/std/">стандартной библиотеки Rust</a>, но есть много возможностей (features) из Rust, которые мы <em>можем</em> использовать. Например, мы можем использовать <a href="https://doc.rust-lang.org/book/ch13-02-iterators.html">итераторы</a>, <a href="https://doc.rust-lang.org/book/ch13-01-closures.html">замыкания</a>, <a href="https://doc.rust-lang.org/book/ch06-00-enums.html">pattern matching</a>, <a href="https://doc.rust-lang.org/core/option/">option</a> и <a href="https://doc.rust-lang.org/core/result/">result</a>, <a href="https://doc.rust-lang.org/core/macro.write.html">форматирование строк</a> и, конечно же, <a href="https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html">систему владения</a>. Эти возможности позволяют написать ядро очень выразительным и высокоуровневым способом, не беспокоясь о <a href="https://www.nayuki.io/page/undefined-behavior-in-c-and-cplusplus-programs">неопределенном поведении</a> (undefined behavior) или о <a href="https://tonyarcieri.com/it-s-time-for-a-memory-safety-intervention">безопасности памяти</a> (memory safety).</p>
-<p>Для разработки ядра ОС на Rust нам необходимо создать исполняемый файл, который можно запускать без операционной системы. Такой файл обычно называют “автономный” (freestanding) или “голый” (bare-metal).</p>
-<p>В этой статье описываются шаги, необходимые для создания автономного бинарника на Rust, и объясняется, почему эти шаги необходимы. Если вас интересует краткая сводка, вы можете <strong><a href="#summary">перейти к резюме</a></strong></p>
-<h2 id="Реализация-panic"><a class="header" href="#Реализация-panic">Реализация Panic</a></h2>
-<p>Атрибут <code>panic_handler</code> определяет функцию, которую компилятор должен вызвать при возникновении <a href="https://doc.rust-lang.org/stable/book/ch09-01-unrecoverable-errors-with-panic.html">паники</a> (panic) входе работы программы. Стандартная библиотека предоставляет собственную функцию обработки паники, но так как мы используем <code>no_std</code>, нам нужно определить ее самостоятельно:</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// in main.rs
-
-use core::panic::PanicInfo;
-
-/// Эта функция вызывается при панике
-#[panic_handler]
-fn panic(_info: &amp;PanicInfo) -&gt; ! {
-    loop {}
-}
-<span class="boring">}
-</span></code></pre></pre>
-<p><a href="https://doc.rust-lang.org/nightly/core/panic/struct.PanicInfo.html">Параметр <code>PanicInfo</code></a> содержит в себе информацию о файле и строку, где произошла паника, а также может содержать сообщение с ошибкой. Функция должна никогда не возвращать результат (never return), поэтому она помечена как <a href="https://doc.rust-lang.org/1.30.0/book/first-edition/functions.html#diverging-functions">расходящаяся функция</a> (diverging function) с помощью возврата <a href="https://doc.rust-lang.org/nightly/std/primitive.never.html">“пустого” типа</a> <code>!</code>. Сейчас мы мало что можем сделать с этой функцией, поэтому просто создадим бесконечный цикл.</p>
-<h2 id="Элемент-языка-eh_personality"><a class="header" href="#Элемент-языка-eh_personality">Элемент языка <code>eh_personality</code></a></h2>
-<p>Элементы языка - это специальные функции и типы, которые требует компилятор. Например, трейт <a href="https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html"><code>Copy</code></a> - это элемент языка, который сообщает компилятору какие типы имею <a href="https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html"><em>семантику копирования</em></a>. Если посмотреть на <a href="https://github.com/rust-lang/rust/blob/485397e49a02a3b7ff77c17e4a3f16c653925cb3/src/libcore/marker.rs#L296-L299">реализацию</a>, мы увидим, что трейт помечен специальным атрибутом <code>#[lang = &quot;copy&quot;]</code>, который определяет его как языковой элемент.</p>
-<p>Хотя создание пользовательских реализаций языковых элементов возможно, делать это следует только в крайнем случае. Причина в том, что языковые элементы представляют собой очень нестабильные детали реализации, типы которых не проверяются компилятором статически. К счастью, есть более безопасный способ исправить указанную выше ошибку.</p>
-<p><a href="https://github.com/rust-lang/rust/blob/edb368491551a77d77a48446d4ee88b35490c565/src/libpanic_unwind/gcc.rs#L11-L45">Элемент языка <code>eh_personality</code></a> помечает функцию, которая используется для реализации <a href="https://www.bogotobogo.com/cplusplus/stackunwinding.php">раскрутки стека</a>. По умолчанию Rust использует раскрутку стека для запуска деструкторов всех переменных, живущих на стеке, в случае паники. Это гарантирует, что вся используемая память будет освобождена, и позволяет родительскому потоку перехватить панику и продолжить выполнение. Однако раскрутка стека - это сложный процесс, требующий наличие библиотек, специфичных для ОС (например <a href="https://www.nongnu.org/libunwind/">libunwind</a> на Linux или <a href="https://docs.microsoft.com/de-de/windows/win32/debug/structured-exception-handling">structured exception handling</a> на Windows), так что мы не будем использовать раскрутку в нашей операционной системе.</p>
-<h3 id="Отключение-раскрутки-стека"><a class="header" href="#Отключение-раскрутки-стека">Отключение раскрутки стека</a></h3>
-<p>Бывают случаи, когда раскрутка нежелательна, поэтому Rust предоставляет возможность <a href="https://github.com/rust-lang/rust/pull/32900">прекратить работу исполняемого файла</a> при панике. Это отключает генерацию символов, необходимых для раскрутки стека, и, таким образом, значительно уменьшает размер бинарного файла. Есть несколько способов отключения раскрутки. Самый простой - добавить несколько строк в наш <code>Cargo.toml</code>:</p>
-<pre><code class="language-toml">[profile.dev]
-panic = &quot;abort&quot;
-
-[profile.release]
-panic = &quot;abort&quot;
-</code></pre>
-<p>Мы указываем прекратить работу исполняемого файла при панике для <code>dev</code> профиля (используется при <code>cargo build</code>) и для <code>release</code> профиля (используется при <code>cargo build --release</code>). Теперь языковой элемент <code>eh_personality</code> больше не требуется.</p>
-<p>Теперь мы исправили обе указанные выше ошибки. Однако, если мы попытаемся скомпилировать программу, возникнет другая ошибка:</p>
-<pre><code>&gt; cargo build
-error: requires `start` lang_item
-</code></pre>
-<p>Компилятор не может найти языковой элемент <code>start</code>, который определяет точку входа в программу.</p>
-<h2 id="Аттрибут-start"><a class="header" href="#Аттрибут-start">Аттрибут <code>start</code></a></h2>
-<p>One might think that the <code>main</code> function is the first function called when you run a program. However, most languages have a [runtime system], which is responsible for things such as garbage collection (e.g. in Java) or software threads (e.g. goroutines in Go). This runtime needs to be called before <code>main</code>, since it needs to initialize itself.</p>
-<p>Можно подумать, что функция <code>main</code> - это первая функция, которая будет вызвана при запуске вашей программы. Однако у большинства языков программирования есть <a href="https://en.wikipedia.org/wiki/Runtime_system">среда выполнения</a> (runtime system), которая отвечает за такие вещи, как сборка мусора (например в Java) или программные потоки (например goroutines в Go). Среду выполнения нужно вызвать перед <code>main</code>, поскольку она должна инициализировать себя.</p>
-<p>В обычном бинарном файле Rust, который подключает стандартную библиотеку, выполнение начинается в runtime-библиотеке языка Си под названием <code>crt0</code> (“C runtime zero”), которая устанавливает среду для Си-приложения. Это включает в себя создание стека и размещение аргументов в правильных регистрах. Затем среда выполнения Си вызывает <a href="https://github.com/rust-lang/rust/blob/bb4d1491466d8239a7a5fd68bd605e3276e97afb/src/libstd/rt.rs#L32-L73">точку входа среды выполнения Rust</a>, которая помечена языковым элементом <code>start</code>. Rust имеет очень маленькую среду выполнения, которая заботится о некоторых мелочах, таких как настройка защиты от переполнения стека или печать backtrace при панике. Затем среда выполнения вызывает функцию <code>main</code>.</p>
-<p>Наш автономный исполняемый файл не имеет доступа к среде выполнения Rust и к <code>crt0</code>, поэтому нам нужно определить нашу собственную точку входа. Реализация языкового элемента <code>start</code> не решит нашу проблему, так как для работы потребуется <code>crt0</code>. Вместо этого нам нужно напрямую перезаписать точку входа <code>crt0</code>.</p>
-<h3 id="Перезаписывание-точки-входа"><a class="header" href="#Перезаписывание-точки-входа">Перезаписывание точки входа</a></h3>
-<p>Чтобы сообщить компилятору Rust, что мы не хотим использовать обычную цепочку точек входа, мы должны использовать <code>#![no_main]</code> атрибут.</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span>#![no_std]
-#![no_main]
-
-<span class="boring">fn main() {
-</span>use core::panic::PanicInfo;
-
-/// Эта функция вызывается при панике
-#[panic_handler]
-fn panic(_info: &amp;PanicInfo) -&gt; ! {
-    loop {}
-}
-<span class="boring">}
-</span></code></pre></pre>
-<p>Вы можете заметить, что мы удалили функцию <code>main</code>. Дело в том, что функция <code>main</code> не имеет смысла без среды выполнения, которая её вызывает. Вместо этого теперь мы перезаписываем точку входа в операционную систему с помощью функции <code>_start</code>:</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[no_mangle]
-pub extern &quot;C&quot; fn _start() -&gt; ! {
-    loop {}
-}
-<span class="boring">}
-</span></code></pre></pre>
-<p>Используя атрибут <code>#[no_mangle]</code>, мы отключаем <a href="https://en.wikipedia.org/wiki/Name_mangling">искажение имен</a> (name mangling), чтобы гарантировать, что компилятор Rust создаст функцию с именем <code>_start</code>. Без этого атрибута компилятор сгенерирует какой-нибудь загадочный символ, наподобие <code>_ZN3blog_os4_start7hb173fedf945531caE</code>, чтобы дать каждой функции уникальное имя. Атрибут является обязательным, поскольку на следующем шаге нам нужно сообщить имя функции точки входа компоновщику.</p>
-<p>Мы также должны пометить функцию как <code>extern &quot;C&quot;</code>, чтобы сообщить компилятору, что он должен использовать [соглашение о вызове языка Си] (C calling convention) для этой функции (вместо неопределенного соглашения о вызове языка Rust). Причина, по которой мы назвали точку входа именем <code>_start</code>, заключается в том, что это имя точки входа по умолчанию для большинства систем. </p>
-<p>Возвращаемый тип <code>!</code> говорит о том, что функция помечена как расходящаяся (diverging), то есть никогда не возвращает результат. Это необходимо, потому что точка входа не вызывается какой-либо функцией, но вызывается непосредственно операционной системой или загрузчиком (bootloader). Поэтому вместо возврата значений точка входа должна, например, вызывать <a href="https://en.wikipedia.org/wiki/Exit_(system_call)">системную функцию <code>exit</code></a>. В нашем случае выключение устройства может быть разумным действием, так как больше ничего не остается делать, если исполняемый файл завершает свою работу. На данный момент мы выполняем требование, создавая бесконечный цикл.</p>
-<p>Если запустить <code>cargo build</code> теперь, то мы получим ужасную ошибку <em>компоновщика</em>.</p>
-<h2 id="Ошибки-компоновщика"><a class="header" href="#Ошибки-компоновщика">Ошибки компоновщика</a></h2>
-<p>Компоновщик - это программа, которая упаковывает сгенерированный код в исполняемый файл. Поскольку формат исполняемый файлов в Linux, Windows и macOS различный, в каждой ОС есть собственный компоновщик. Так как компоновщики разные, то и сообщения об ошибке будут отличаться. Но причина ошибок одинаковая: конфигурация компоновщика по умолчанию предполагает, что наша программа зависит от среды выполнения Си, хотя это не так.</p>
-<p>Для устранения ошибки мы должны сообщить компоновщику, что он не должен подключать среду исполнения Си. Мы можем сделать это передав определенный набор аргументов компоновщику или скомпилировать наш файл для ”голого железа”.</p>
-<h3 id="Компиляция-для-голого-железа"><a class="header" href="#Компиляция-для-голого-железа">Компиляция для ”голого железа”</a></h3>
-<p>По умолчанию Rust пытается создать исполняемый файл, который можно запустить на текущей системе. Например, если вы используете Windows на архитектуре <code>x86_64</code>, то Rust пытается создать <code>.exe</code> файл, который использует <code>x86_64</code> инструкции. Текущую операционную систему также называют <code>host system</code>.</p>
-<p>Для описания различных сред исполнения Rust использует строку называемую <a href="https://clang.llvm.org/docs/CrossCompilation.html#target-triple"><em>target triple</em></a>. Вы можете увидеть <code>target triple</code> для вашей системы с помощью команды <code>rustc --version --verbose</code>:</p>
-<pre><code>rustc 1.35.0-nightly (474e7a648 2019-04-07)
-binary: rustc
-commit-hash: 474e7a6486758ea6fc761893b1a49cd9076fb0ab
-commit-date: 2019-04-07
-host: x86_64-unknown-linux-gnu
-release: 1.35.0-nightly
-LLVM version: 8.0
-</code></pre>
-<p>Приведенный выше вывод получен из <code>x86_64</code> Linux системы. Мы видим, что <code>host</code> система - это <code>x86_64-unknown-linux-gnu</code>. Это означает, что система использует <code>x86_64</code> архитектуру, поставщиком ОС является  <code>unknown</code>, операционная система - <code>linux</code>, а <a href="https://en.wikipedia.org/wiki/Application_binary_interface">ABI</a> - (<code>gnu</code>).</p>
-<p>При компиляции для нашей основной среды, компилятор Rust и компоновщик предполагали, что существует базовая операционная система, такая как Linux или Windows, использующая среду выполнения Си по умолчанию, что привело к ошибкам компоновщика. Чтобы избежать ошибки компоновщика, мы скомпилируем исполняемый файл для другой среды, которая не требует базовой ОС.</p>
-<p>Примером таковой является среда &quot;голого железа&quot;, именуемая как <code>thumbv7em-none-eabihf</code>, которая описывает [встроенную] <a href="https://en.wikipedia.org/wiki/ARM_architecture">ARM</a> систему. Детали нам не важны, самое главное только то, что target triple не имеет базовой ОС, на что указывает <code>none</code> в названии target triple. Чтобы иметь возможность компилировать для этого target, мы также должны добавить его в rustup:</p>
-<pre><code>rustup target add thumbv7em-none-eabihf
-</code></pre>
-<p>Эта команда загрузит копию стандартной библиотеки и ядро языка для системы. Теперь мы можем создать наш автономный исполняемый файл для этого target'a;</p>
-<pre><code>cargo build --target thumbv7em-none-eabihf
-</code></pre>
-<p>Используя аргумент <code>--target</code> мы <a href="https://en.wikipedia.org/wiki/Cross_compiler">кросс компилируем</a> наш исполняемый файл для bare metal target system. Поскольку target system не имеет операционной системы, компоновщик не пытается подключить среду выполнения Си и создание нашего исполняемого файла происходит успешно без ошибок компоновщика.</p>
-<p>This is the approach that we will use for building our OS kernel. Instead of <code>thumbv7em-none-eabihf</code>, we will use a <a href="https://doc.rust-lang.org/rustc/targets/custom.html">custom target</a> that describes a <code>x86_64</code> bare metal environment. The details will be explained in the next post.</p>
-<h3 id="linker-arguments"><a class="header" href="#linker-arguments">Linker Arguments</a></h3>
-<p>Instead of compiling for a bare metal system, it is also possible to resolve the linker errors by passing a certain set of arguments to the linker. This isn't the approach that we will use for our kernel, therefore this section is optional and only provided for completeness. Click on <em>&quot;Linker Arguments&quot;</em> below to show the optional content.</p>
-<details>
-<summary>Linker Arguments</summary>
-<p>In this section we discuss the linker errors that occur on Linux, Windows, and macOS, and explain how to solve them by passing additional arguments to the linker. Note that the executable format and the linker differ between operating systems, so that a different set of arguments is required for each system.</p>
-<h4 id="linux"><a class="header" href="#linux">Linux</a></h4>
-<p>On Linux the following linker error occurs (shortened):</p>
-<pre><code>error: linking with `cc` failed: exit code: 1
-  |
-  = note: &quot;cc&quot; […]
-  = note: /usr/lib/gcc/../x86_64-linux-gnu/Scrt1.o: In function `_start':
-          (.text+0x12): undefined reference to `__libc_csu_fini'
-          /usr/lib/gcc/../x86_64-linux-gnu/Scrt1.o: In function `_start':
-          (.text+0x19): undefined reference to `__libc_csu_init'
-          /usr/lib/gcc/../x86_64-linux-gnu/Scrt1.o: In function `_start':
-          (.text+0x25): undefined reference to `__libc_start_main'
-          collect2: error: ld returned 1 exit status
-</code></pre>
-<p>The problem is that the linker includes the startup routine of the C runtime by default, which is also called <code>_start</code>. It requires some symbols of the C standard library <code>libc</code> that we don't include due to the <code>no_std</code> attribute, therefore the linker can't resolve these references. To solve this, we can tell the linker that it should not link the C startup routine by passing the <code>-nostartfiles</code> flag.</p>
-<p>One way to pass linker attributes via cargo is the <code>cargo rustc</code> command. The command behaves exactly like <code>cargo build</code>, but allows to pass options to <code>rustc</code>, the underlying Rust compiler. <code>rustc</code> has the <code>-C link-arg</code> flag, which passes an argument to the linker. Combined, our new build command looks like this:</p>
-<pre><code>cargo rustc -- -C link-arg=-nostartfiles
-</code></pre>
-<p>Now our crate builds as a freestanding executable on Linux!</p>
-<p>We didn't need to specify the name of our entry point function explicitly since the linker looks for a function with the name <code>_start</code> by default.</p>
-<h4 id="windows"><a class="header" href="#windows">Windows</a></h4>
-<p>On Windows, a different linker error occurs (shortened):</p>
-<pre><code>error: linking with `link.exe` failed: exit code: 1561
-  |
-  = note: &quot;C:\\Program Files (x86)\\…\\link.exe&quot; […]
-  = note: LINK : fatal error LNK1561: entry point must be defined
-</code></pre>
-<p>The &quot;entry point must be defined&quot; error means that the linker can't find the entry point. On Windows, the default entry point name <a href="https://docs.microsoft.com/en-us/cpp/build/reference/entry-entry-point-symbol">depends on the used subsystem</a>. For the <code>CONSOLE</code> subsystem the linker looks for a function named <code>mainCRTStartup</code> and for the <code>WINDOWS</code> subsystem it looks for a function named <code>WinMainCRTStartup</code>. To override the default and tell the linker to look for our <code>_start</code> function instead, we can pass an <code>/ENTRY</code> argument to the linker:</p>
-<pre><code>cargo rustc -- -C link-arg=/ENTRY:_start
-</code></pre>
-<p>From the different argument format we clearly see that the Windows linker is a completely different program than the Linux linker.</p>
-<p>Now a different linker error occurs:</p>
-<pre><code>error: linking with `link.exe` failed: exit code: 1221
-  |
-  = note: &quot;C:\\Program Files (x86)\\…\\link.exe&quot; […]
-  = note: LINK : fatal error LNK1221: a subsystem can't be inferred and must be
-          defined
-</code></pre>
-<p>This error occurs because Windows executables can use different <a href="https://docs.microsoft.com/en-us/cpp/build/reference/entry-entry-point-symbol">subsystems</a>. For normal programs they are inferred depending on the entry point name: If the entry point is named <code>main</code>, the <code>CONSOLE</code> subsystem is used, and if the entry point is named <code>WinMain</code>, the <code>WINDOWS</code> subsystem is used. Since our <code>_start</code> function has a different name, we need to specify the subsystem explicitly:</p>
-<pre><code>cargo rustc -- -C link-args=&quot;/ENTRY:_start /SUBSYSTEM:console&quot;
-</code></pre>
-<p>We use the <code>CONSOLE</code> subsystem here, but the <code>WINDOWS</code> subsystem would work too. Instead of passing <code>-C link-arg</code> multiple times, we use <code>-C link-args</code> which takes a space separated list of arguments.</p>
-<p>With this command, our executable should build successfully on Windows.</p>
-<h4 id="macos"><a class="header" href="#macos">macOS</a></h4>
-<p>On macOS, the following linker error occurs (shortened):</p>
-<pre><code>error: linking with `cc` failed: exit code: 1
-  |
-  = note: &quot;cc&quot; […]
-  = note: ld: entry point (_main) undefined. for architecture x86_64
-          clang: error: linker command failed with exit code 1 […]
-</code></pre>
-<p>This error message tells us that the linker can't find an entry point function with the default name <code>main</code> (for some reason all functions are prefixed with a <code>_</code> on macOS). To set the entry point to our <code>_start</code> function, we pass the <code>-e</code> linker argument:</p>
-<pre><code>cargo rustc -- -C link-args=&quot;-e __start&quot;
-</code></pre>
-<p>The <code>-e</code> flag specifies the name of the entry point function. Since all functions have an additional <code>_</code> prefix on macOS, we need to set the entry point to <code>__start</code> instead of <code>_start</code>.</p>
-<p>Now the following linker error occurs:</p>
-<pre><code>error: linking with `cc` failed: exit code: 1
-  |
-  = note: &quot;cc&quot; […]
-  = note: ld: dynamic main executables must link with libSystem.dylib
-          for architecture x86_64
-          clang: error: linker command failed with exit code 1 […]
-</code></pre>
-<p>macOS <a href="https://developer.apple.com/library/archive/qa/qa1118/_index.html">does not officially support statically linked binaries</a> and requires programs to link the <code>libSystem</code> library by default. To override this and link a static binary, we pass the <code>-static</code> flag to the linker:</p>
-<pre><code>cargo rustc -- -C link-args=&quot;-e __start -static&quot;
-</code></pre>
-<p>This still does not suffice, as a third linker error occurs:</p>
-<pre><code>error: linking with `cc` failed: exit code: 1
-  |
-  = note: &quot;cc&quot; […]
-  = note: ld: library not found for -lcrt0.o
-          clang: error: linker command failed with exit code 1 […]
-</code></pre>
-<p>This error occurs because programs on macOS link to <code>crt0</code> (“C runtime zero”) by default. This is similar to the error we had on Linux and can be also solved by adding the <code>-nostartfiles</code> linker argument:</p>
-<pre><code>cargo rustc -- -C link-args=&quot;-e __start -static -nostartfiles&quot;
-</code></pre>
-<p>Now our program should build successfully on macOS.</p>
-<h4 id="unifying-the-build-commands"><a class="header" href="#unifying-the-build-commands">Unifying the Build Commands</a></h4>
-<p>Right now we have different build commands depending on the host platform, which is not ideal. To avoid this, we can create a file named <code>.cargo/config.toml</code> that contains the platform specific arguments:</p>
-<pre><code class="language-toml"># in .cargo/config.toml
-
-[target.'cfg(target_os = &quot;linux&quot;)']
-rustflags = [&quot;-C&quot;, &quot;link-arg=-nostartfiles&quot;]
-
-[target.'cfg(target_os = &quot;windows&quot;)']
-rustflags = [&quot;-C&quot;, &quot;link-args=/ENTRY:_start /SUBSYSTEM:console&quot;]
-
-[target.'cfg(target_os = &quot;macos&quot;)']
-rustflags = [&quot;-C&quot;, &quot;link-args=-e __start -static -nostartfiles&quot;]
-</code></pre>
-<p>The <code>rustflags</code> key contains arguments that are automatically added to every invocation of <code>rustc</code>. For more information on the <code>.cargo/config.toml</code> file check out the <a href="https://doc.rust-lang.org/cargo/reference/config.html">official documentation</a>.</p>
-<p>Now our program should be buildable on all three platforms with a simple <code>cargo build</code>.</p>
-<h4 id="should-you-do-this"><a class="header" href="#should-you-do-this">Should You Do This?</a></h4>
-<p>While it's possible to build a freestanding executable for Linux, Windows, and macOS, it's probably not a good idea. The reason is that our executable still expects various things, for example that a stack is initialized when the <code>_start</code> function is called. Without the C runtime, some of these requirements might not be fulfilled, which might cause our program to fail, e.g. through a segmentation fault.</p>
-<p>If you want to create a minimal binary that runs on top of an existing operating system, including <code>libc</code> and setting the <code>#[start]</code> attribute as described <a href="https://doc.rust-lang.org/1.16.0/book/no-stdlib.html">here</a> is probably a better idea.</p>
-</details>
-<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
-<p>A minimal freestanding Rust binary looks like this:</p>
-<p><code>src/main.rs</code>:</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span>#![no_std] // don't link the Rust standard library
-#![no_main] // disable all Rust-level entry points
-
-<span class="boring">fn main() {
-</span>use core::panic::PanicInfo;
-
-#[no_mangle] // don't mangle the name of this function
-pub extern &quot;C&quot; fn _start() -&gt; ! {
-    // this function is the entry point, since the linker looks for a function
-    // named `_start` by default
-    loop {}
-}
-
-/// Эта функция вызывается при панике
-#[panic_handler]
-fn panic(_info: &amp;PanicInfo) -&gt; ! {
-    loop {}
-}
-<span class="boring">}
-</span></code></pre></pre>
-<p><code>Cargo.toml</code>:</p>
-<pre><code class="language-toml">[package]
-name = &quot;crate_name&quot;
-version = &quot;0.1.0&quot;
-authors = [&quot;Author Name &lt;author@example.com&gt;&quot;]
-
-# the profile used for `cargo build`
-[profile.dev]
-panic = &quot;abort&quot; # disable stack unwinding on panic
-
-# the profile used for `cargo build --release`
-[profile.release]
-panic = &quot;abort&quot; # disable stack unwinding on panic
-</code></pre>
-<p>To build this binary, we need to compile for a bare metal target such as <code>thumbv7em-none-eabihf</code>:</p>
-<pre><code>cargo build --target thumbv7em-none-eabihf
-</code></pre>
-<p>Alternatively, we can compile it for the host system by passing additional linker arguments:</p>
-<pre><code class="language-bash"># Linux
-cargo rustc -- -C link-arg=-nostartfiles
-# Windows
-cargo rustc -- -C link-args=&quot;/ENTRY:_start /SUBSYSTEM:console&quot;
-# macOS
-cargo rustc -- -C link-args=&quot;-e __start -static -nostartfiles&quot;
-</code></pre>
-<p>Note that this is just a minimal example of a freestanding Rust binary. This binary expects various things, for example that a stack is initialized when the <code>_start</code> function is called. <strong>So for any real use of such a binary, more steps are required</strong>.</p>
-<h2 id="Что-дальше"><a class="header" href="#Что-дальше">Что дальше?</a></h2>
-<p>В [следующей статье] объясняются шаги, необходимые для превращения нашего автономного бинарного файла в небольшое ядро операционной системы. Это включает в себя создание настраиваемой цели (target), объединение нашего исполняемого файла с загрузчиком и обучение тому, как выводить что-нибудь на экран.</p>
+                        <h1 id="Пишем-операционную-систему-на-rust"><a class="header" href="#Пишем-операционную-систему-на-rust">Пишем операционную систему на Rust</a></h1>
+<h2 id="О-чем-эта-книга"><a class="header" href="#О-чем-эта-книга">О чем эта книга?</a></h2>
+<p>Эта книга - адаптация серии статей с сайте <a href="https://os.phil-opp.com/">os.phil-opp.com</a>. Это не точный перевод. Порядок некоторых действий был изменен, а некоторые моменты были выброшены, потому что они не использовались в книге и были явно помечены как устаревшие. В оригинале книги были множественные повторы, которые я все же решил убрать.</p>
+<p>Если вы хотите принять участие в создании оригинала, то можете присоединиться к <a href="https://github.com/phil-opp/blog_os">сообществу на GitHub</a>.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="next" href="01-freestanding-rust-binary/disabling-std.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="01-freestanding-rust-binary/description.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         <div style="clear: both"></div>
@@ -416,7 +155,7 @@ cargo rustc -- -C link-args=&quot;-e __start -static -nostartfiles&quot;
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="next" href="01-freestanding-rust-binary/disabling-std.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="01-freestanding-rust-binary/description.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

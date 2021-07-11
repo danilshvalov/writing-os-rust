@@ -77,7 +77,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/introduction.html"><strong aria-hidden="true">1.</strong> Автономный исполняемый файл</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/disabling-std.html" class="active"><strong aria-hidden="true">1.1.</strong> Отключение стандартной библиотеки</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../index.html">Пишем операционную систему на Rust</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/description.html"><strong aria-hidden="true">1.</strong> Hello World на своей ОС</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/introduction.html"><strong aria-hidden="true">1.1.</strong> Введение</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/own-target-triple.html"><strong aria-hidden="true">1.2.</strong> Создание целевого триплета</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/disabling-std.html" class="active"><strong aria-hidden="true">1.3.</strong> Отключение стандартной библиотеки</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/panic_and_eh_personality.html"><strong aria-hidden="true">1.4.</strong> Решение проблем с panic и eh_personality</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/start-attr.html"><strong aria-hidden="true">1.5.</strong> Атрибут start</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/summary.html"><strong aria-hidden="true">1.6.</strong> Резюме</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -137,20 +137,10 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="Отключение-стандартной-библиотеки"><a class="header" href="#Отключение-стандартной-библиотеки">Отключение стандартной библиотеки</a></h2>
-<p>По умолчанию все крейты в Rust подключают <a href="https://doc.rust-lang.org/std/">стандартную библиотеку</a>, которая зависит от операционной системы, для таких функций, как потоки (threads), файлы (files) или сеть (networking). Это также включает в себя зависимость от стандартной библиотеки Си (C standard library <code>libc</code>), которая взаимодействует со службами ОС. Поскольку мы планируем написать ОС, мы не можем использовать какие-либо библиотеки, зависящие от ОС. Поэтому мы должны убрать подключение стандартной библиотеки с помощью <a href="https://doc.rust-lang.org/1.30.0/book/first-edition/using-rust-without-the-standard-library.html">атрибута <code>no_std</code></a></p>
-<p>Начнем с создания нового cargo-проекта. Самый простой способ сделать это - с помощью командной строки:</p>
-<pre><code>cargo new blog_os
-</code></pre>
-<p>Я назвал проект <code>blog_os</code>, но вы, конечно, можете выбрать другое имя. Когда мы запускаем команду, cargo создает для нас следующую структуру каталогов:</p>
-<pre><code>blog_os
-├── Cargo.toml
-└── src
-    └── main.rs
-</code></pre>
-<p>Файл <code>Cargo.toml</code> содержит конфигурацию крейта: имя, автора, <a href="https://semver.org/">семантическую версию</a> и зависимости. Файл <code>src/main.rs</code> содержит корневой модуль нашего крейта и нашу <code>main</code> функцию. Вы можете скомпилировать ваш крейт с помощью команды <code>cargo build</code>, после чего в директории <code>target/debug</code> появится бинарный файл нашего крейта, который вы можете запустить. Чтобы скомпилировать и сразу запустить, можно воспользоваться командой <code>cargo run</code>.</p>
-<h3 id="атрибут-no_std"><a class="header" href="#атрибут-no_std">атрибут <code>no_std</code></a></h3>
-<p>Прямо сейчас наш крейт неявно подключает стандартную библиотеку. Давайте изменим это, добавив <a href="https://doc.rust-lang.org/1.30.0/book/first-edition/using-rust-without-the-standard-library.html">атрибут <code>no_std</code></a>:</p>
+                        <h1 id="Отключение-стандартной-библиотеки"><a class="header" href="#Отключение-стандартной-библиотеки">Отключение стандартной библиотеки</a></h1>
+<p>По умолчанию все крейты в Rust подключают <a href="https://doc.rust-lang.org/std/">стандартную библиотеку</a>, которая зависит от операционной системы. Стандартная библиотека использует такие ОС-зависимые возможности, как потоки, файлы, сеть. Кроме того, это в том числе и зависимость от стандартной библиотеки Си, которая взаимодействует со службами ОС. Поскольку мы планируем написать собственную ОС, нам придется отказаться от подключения стандартной библиотеки.</p>
+<h2 id="Атрибут-no_std"><a class="header" href="#Атрибут-no_std">Атрибут <code>no_std</code></a></h2>
+<p>Сейчас наш крейт неявно подключает стандартную библиотеку. Давайте изменим это, добавив <a href="https://doc.rust-lang.org/1.30.0/book/first-edition/using-rust-without-the-standard-library.html">атрибут <code>no_std</code></a>:</p>
 <pre><pre class="playground"><code class="language-rust">// main.rs
 
 #![no_std]
@@ -159,33 +149,37 @@ fn main() {
     println!(&quot;Hello, world!&quot;);
 }
 </code></pre></pre>
-<p>Если мы попробуем скомпилировать наш крейт (с помощью <code>cargo build</code>), то получим ошибку:</p>
-<pre><code>error: cannot find macro `println!` in this scope
+<p>Если попробовать скомпилировать наш крейт (с помощью <code>cargo build</code>), то мы получим сразу несколько ошибок. Самая первая из них:</p>
+<pre><code class="language-console">error: cannot find macro `println!` in this scope
  --&gt; src/main.rs:4:5
   |
 4 |     println!(&quot;Hello, world!&quot;);
   |     ^^^^^^^
 </code></pre>
-<p>Причина этой ошибки в том, что <a href="https://doc.rust-lang.org/std/macro.println.html">макрос <code>println</code></a> является частью стандартной библиотеки, которую мы больше не подключаем. Теперь мы не можем ничего распечатать. Это имеет смысл, поскольку <code>println</code> использует <a href="https://en.wikipedia.org/wiki/Standard_streams#Standard_output_.28stdout.29">стандартный вывод</a>, который представляет собой специальный файловый дескриптор, предоставляемый ОС.</p>
-<p>Давайте удалим <code>println</code> и попробуем снова с пустой функцией <code>main</code>:</p>
+<p>Макрос <a href="https://doc.rust-lang.org/std/macro.println.html"><code>println</code></a> является частью стандартной библиотеки, которую мы больше не подключаем. <code>println</code> использует <a href="https://en.wikipedia.org/wiki/Standard_streams#Standard_output_.28stdout.29">стандартный вывод</a>, который представляет собой специальный файловый дескриптор, предоставляемый ОС, поэтому теперь мы не можем ничего распечатать.</p>
+<p>Нам придется удалить <code>println</code> и оставить пустой функцию <code>main</code>, чтобы избавиться от ошибки:</p>
 <pre><pre class="playground"><code class="language-rust">// main.rs
 
 #![no_std]
 
 fn main() {}
 </code></pre></pre>
-<pre><code>&gt; cargo build
+<p>Если снова попробовать собрать наш крейт, то мы получим следующую ошибку:</p>
+<pre><code class="language-console">$ cargo build
 error: `#[panic_handler]` function required, but not found
 error: language item required, but not found: `eh_personality`
 </code></pre>
-<p>Теперь компилятор не может найти функцию с атрибутом <code>#[panic_handler]</code> и <em>элемент языка</em> <code>eh_personality</code>.</p>
+<p>Компилятор не смог найти функцию, помеченную атрибутом <code>#[panic_handler]</code>, а также <em>языковой элемент</em> <code>eh_personality</code>.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../01-freestanding-rust-binary/introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../01-freestanding-rust-binary/own-target-triple.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
+                            </a>
+                            <a rel="next" href="../01-freestanding-rust-binary/panic_and_eh_personality.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
                             </a>
                         <div style="clear: both"></div>
                     </nav>
@@ -193,8 +187,11 @@ error: language item required, but not found: `eh_personality`
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../01-freestanding-rust-binary/introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../01-freestanding-rust-binary/own-target-triple.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
+                    </a>
+                    <a rel="next" href="../01-freestanding-rust-binary/panic_and_eh_personality.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
 

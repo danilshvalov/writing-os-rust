@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Введение - Пишем операционную систему на Rust</title>
+        <title>Hello World на своей ОС - Пишем операционную систему на Rust</title>
         <!-- Custom HTML head -->
         
 
@@ -77,7 +77,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../index.html">Пишем операционную систему на Rust</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/description.html"><strong aria-hidden="true">1.</strong> Hello World на своей ОС</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/introduction.html" class="active"><strong aria-hidden="true">1.1.</strong> Введение</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/own-target-triple.html"><strong aria-hidden="true">1.2.</strong> Создание целевого триплета</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/disabling-std.html"><strong aria-hidden="true">1.3.</strong> Отключение стандартной библиотеки</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/panic_and_eh_personality.html"><strong aria-hidden="true">1.4.</strong> Решение проблем с panic и eh_personality</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/start-attr.html"><strong aria-hidden="true">1.5.</strong> Атрибут start</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/summary.html"><strong aria-hidden="true">1.6.</strong> Резюме</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../index.html">Пишем операционную систему на Rust</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/description.html" class="active"><strong aria-hidden="true">1.</strong> Hello World на своей ОС</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/introduction.html"><strong aria-hidden="true">1.1.</strong> Введение</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/own-target-triple.html"><strong aria-hidden="true">1.2.</strong> Создание целевого триплета</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/disabling-std.html"><strong aria-hidden="true">1.3.</strong> Отключение стандартной библиотеки</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/panic_and_eh_personality.html"><strong aria-hidden="true">1.4.</strong> Решение проблем с panic и eh_personality</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/start-attr.html"><strong aria-hidden="true">1.5.</strong> Атрибут start</a></li><li class="chapter-item expanded "><a href="../01-freestanding-rust-binary/summary.html"><strong aria-hidden="true">1.6.</strong> Резюме</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -137,19 +137,17 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="Введение"><a class="header" href="#Введение">Введение</a></h1>
-<p>Чтобы написать ядро операционной системы, нам нужен код, который не зависит от каких-либо функций операционной системы. Это означает, что мы не можем использовать потоки, файлы, память в куче, сеть, случайные числа, стандартный вывод или любые другие абстракции операционной системы. Все таки мы пытаемся написать собственную операционную систему.</p>
-<p>Из-за этого мы не можем использовать большую часть <a href="https://doc.rust-lang.org/std/">стандартной библиотеки Rust</a>, но есть много возможностей из Rust, которые мы <em>можем</em> использовать. Например, мы можем использовать <a href="https://doc.rust-lang.org/book/ch13-02-iterators.html">итераторы</a>, <a href="https://doc.rust-lang.org/book/ch13-01-closures.html">замыкания</a>, <a href="https://doc.rust-lang.org/book/ch06-00-enums.html">pattern matching</a>, <a href="https://doc.rust-lang.org/core/option/">option</a> и <a href="https://doc.rust-lang.org/core/result/">result</a>, <a href="https://doc.rust-lang.org/core/macro.write.html">форматирование строк</a> и, конечно же, <a href="https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html">систему владения</a>. Эти возможности позволяют написать ядро очень выразительным и высокоуровневым способом, не беспокоясь о неопределенном поведении или о небезопасном использовании памяти.</p>
-<p>Для разработки ядра ОС на Rust нам необходимо создать исполняемый файл, который можно запускать без операционной системы. Далее мы будем называть такой файл <em>автономным</em>.</p>
+                        <h1 id="О-чем-эта-глава"><a class="header" href="#О-чем-эта-глава">О чем эта глава?</a></h1>
+<p>В этой главе мы создадим исполняемый файл, который не использует стандартную библиотеку Rust. Благодаря этому мы сможем запустить нашу программу без базовой операционной системы.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../01-freestanding-rust-binary/description.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../../index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
-                            <a rel="next" href="../01-freestanding-rust-binary/own-target-triple.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../01-freestanding-rust-binary/introduction.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         <div style="clear: both"></div>
@@ -158,10 +156,10 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../01-freestanding-rust-binary/description.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../../index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
-                    <a rel="next" href="../01-freestanding-rust-binary/own-target-triple.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="../01-freestanding-rust-binary/introduction.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
