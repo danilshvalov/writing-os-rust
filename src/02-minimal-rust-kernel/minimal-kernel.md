@@ -140,17 +140,11 @@ We see that `cargo build` now recompiles the `core`, `rustc-std-workspace-core` 
 
 #### Memory-Related Intrinsics Внутренние функции для работы с памятью
 
-The Rust compiler assumes that a certain set of built-in functions is available for all systems. Most of these functions are provided by the `compiler_builtins` crate that we just recompiled. However, there are some memory-related functions in that crate that are not enabled by default because they are normally provided by the C library on the system. These functions include `memset`, which sets all bytes in a memory block to a given value, `memcpy`, which copies one memory block to another, and `memcmp`, which compares two memory blocks. While we didn't need any of these functions to compile our kernel right now, they will be required as soon as we add some more code to it (e.g. when copying structs around).
-
 Компилятор Rust предполагает, что определенный набор функций доступен для всех систем. Большинство этих функций есть в только что скомпилированном крейте `compiler_builtins`. Однако некоторые функции, связанные с памятью, отсутствуют по умолчанию, потому что обычно они предоставляются стандартной библиотекой Си, которая установлена в системе. Например, такие функции, как `memset`, который устанавливает значение для всех байтов в блоке памяти заданное значение, `memcpy`, которая копирует один блок памяти в другой, `memcmp`, который сравнивает два блока памяти. Хотя нам и не требуются какие-либо из этих функций прямо сейчас для компиляции нашего ядра, они потребуются, как только мы добавить еще немного кода (например, при копирование структур).
-
-Since we can't link to the C library of the operating system, we need an alternative way to provide these functions to the compiler. One possible approach for this could be to implement our own `memset` etc. functions and apply the `#[no_mangle]` attribute to them (to avoid the automatic renaming during compilation). However, this is dangerous since the slightest mistake in the implementation of these functions could lead to undefined behavior. For example, you might get an endless recursion when implementing `memcpy` using a `for` loop because `for` loops implicitly call the [`IntoIterator::into_iter`] trait method, which might call `memcpy` again. So it's a good idea to reuse existing well-tested implementations instead.
 
 Поскольку мы не можем использовать стандартную библиотеку Си, нам нужен альтернативный способ предоставить эти функции компилятору. Одним из возможных способов является собственная реализация функций, таких как `memset` и т. д., с использованием атрибута `#[no_mangle]` (чтобы избежать искажения имен компилятором). Однако это опасно, поскольку малейшая ошибка в реализации этих функций может привести к неопределенному поведению. Например, вы можете получить бесконечную рекурсию при реализации `memcpy` с использованием цикла `for`, потому что цикл `for` неявно вызывает метод [`IntoIterator::into_iter`] трейта, который может снова вызвать `memcpy` снова. Поэтому рекомендуется переиспользовать уже существующие, хорошо протестированные реализации.
 
 [`IntoIterator::into_iter`]: https://doc.rust-lang.org/stable/core/iter/trait.IntoIterator.html#tymethod.into_iter
-
-Fortunately, the `compiler_builtins` crate already contains implementations for all the needed functions, they are just disabled by default to not collide with the implementations from the C library. We can enable them by setting cargo's [`build-std-features`] flag to `["compiler-builtins-mem"]`. Like the `build-std` flag, this flag can be either passed on the command line as `-Z` flag or configured in the `unstable` table in the `.cargo/config.toml` file. Since we always want to build with this flag, the config file option makes more sense for us:
 
 К счастью, крейт `compiler_builtins` уже содержит реализацию всех необходимых функций. Они просто отключены по умолчанию, чтобы не конфликтовать с функциями из стандартной библиотеки Си. Мы можем включить их, установив в настройках cargo флаг [`build-std-features`] в значение `["compiler-builtins-mem"]`. Как и флаг `build-std`, этот флаг может быть передан в командной строке как флаг `-Z` или настроен в таблице `unstable` в файле `.cargo/config.toml`. Поскольку мы хотим, чтобы этот флаг всегда использовался при сборке, мы настроим конфигурационный файл:
 
@@ -223,7 +217,7 @@ pub extern "C" fn _start() -> ! {
 }
 ```
 
-First, we cast the integer `0xb8000` into a [raw pointer]. Then we [iterate] over the bytes of the [static] `HELLO` [byte string]. We use the [`enumerate`] method to additionally get a running variable `i`. In the body of the for loop, we use the [`offset`] method to write the string byte and the corresponding color byte (`0xb` is a light cyan).
+Сначала мы преобразуем число `0xb8000` в [сырой указатель][raw pointer]. Затем мы [перебираем][iterate] байты [статической][static] [байтовой строки][byte string] `HELLO`. Мы используем метод [`enumerate`] у итератора, чтобы получать в переменную `i` номер текущего шага (0, 1, ..., n). В теле цикла мы используем метод [`offset`], чтобы записать байт ASCII и байтом цвета (`0xb` это светло-голубой цвет).
 
 [iterate]: https://doc.rust-lang.org/stable/book/ch13-02-iterators.html
 [static]: https://doc.rust-lang.org/book/ch10-03-lifetime-syntax.html#the-static-lifetime
@@ -232,15 +226,17 @@ First, we cast the integer `0xb8000` into a [raw pointer]. Then we [iterate] ove
 [raw pointer]: https://doc.rust-lang.org/stable/book/ch19-01-unsafe-rust.html#dereferencing-a-raw-pointer
 [`offset`]: https://doc.rust-lang.org/std/primitive.pointer.html#method.offset
 
-Note that there's an [`unsafe`] block around all memory writes. The reason is that the Rust compiler can't prove that the raw pointers we create are valid. They could point anywhere and lead to data corruption. By putting them into an `unsafe` block we're basically telling the compiler that we are absolutely sure that the operations are valid. Note that an `unsafe` block does not turn off Rust's safety checks. It only allows you to do [five additional things].
+Обратите внимание, что операции с памятью находятся в блоке [`unsafe`]. Дело в том, что компилятор Rust не может доказать, что созданный сырой указатель действителен. Он может указывать куда угодно, а операции над такими указателями могут приводить к повреждению данных в памяти. Используя блок `unsafe`, мы говорим компилятору, что абсолютно уверены в правильности этих операций. Заметим, что `unsafe` не отключает проверки безопасности Rust. Он позволяет вам делать только [пять дополнительных вещей][five additional things].
 
 [`unsafe`]: https://doc.rust-lang.org/stable/book/ch19-01-unsafe-rust.html
 [five additional things]: https://doc.rust-lang.org/stable/book/ch19-01-unsafe-rust.html#unsafe-superpowers
 
-I want to emphasize that **this is not the way we want to do things in Rust!** It's very easy to mess up when working with raw pointers inside unsafe blocks, for example, we could easily write beyond the buffer's end if we're not careful.
+Очень важно, что это **исключительный случай, который не соответствует идиоматическому Rust**. Использовать `unsafe` стоит только в случаях, когда вы уверены, что нет другого способа сделать желаемое. Кроме того, вы должны понимать, что делаете все правильно. Не забывайте про тестирование, все таки каждому человеку свойственно ошибаться.
+
+Обратите внимание, что операции с памятью находятся в блоке [`unsafe`]. Дело в том, что компилятор Rust не может доказать, что созданный сырой указатель действителен. Он может указывать куда угодно, а операции над такими указателями могут приводить к повреждению данных в памяти. Используя блок `unsafe`, мы говорим компилятору, что абсолютно уверены в правильности этих операций. Заметим, что `unsafe` не отключает проверки безопасности Rust. Он позволяет вам делать только [пять дополнительных вещей][five additional things].
 
 So we want to minimize the use of `unsafe` as much as possible. Rust gives us the ability to do this by creating safe abstractions. For example, we could create a VGA buffer type that encapsulates all unsafety and ensures that it is _impossible_ to do anything wrong from the outside. This way, we would only need minimal amounts of `unsafe` and can be sure that we don't violate [memory safety]. We will create such a safe VGA buffer abstraction in the next post.
 
+Все же мы хотим минимизировать использование `unsafe` блоков настолько, насколько это возможно. Rust предлагает делать это с помощью создания безопасных абстракций. Например, мы можем создать свой тип буфера VGA, который инкапсулировал всю небезопасную логику и гарантировал, что _невозможно_ сделать что-то неправильно извне. Таким образом, нам понадобиться минимальное количество `unsafe` и мы можем быть уверены, что не нарушаем [безопасность памяти][memory safety]. В следующей главе мы создадим такую абстракцию буфера VGA.
+
 [memory safety]: https://en.wikipedia.org/wiki/Memory_safety
-
-
